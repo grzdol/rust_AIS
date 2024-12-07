@@ -1,0 +1,3 @@
+[submodule "ais_message_encoder"]
+	path = ais_message_encoder
+	url = https://github.com/grzdol/ais_message_encoder.git
