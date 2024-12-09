@@ -1,33 +1,47 @@
+use crate::boat_state::{self, BoatState};
+use crate::utils;
 use std::net::IpAddr;
-
-use tokio::net::TcpStream;
+use std::thread::sleep;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use std::process;
-
-pub struct TcpClient {
-  ip: IpAddr,
-  port: u16,
-  stream: TcpStream
+use tokio::net::TcpStream;
+pub struct TcpClient<T>
+where
+    T: BoatState,
+{
+    ip: IpAddr,
+    port: u16,
+    stream: TcpStream,
+    boat_state: T,
 }
 
-impl TcpClient {
-  pub async fn new(ip: IpAddr, port: u16) -> Result<Self, Box<dyn std::error::Error>>{
-    let stream = match TcpStream::connect((ip, port)).await {
-      Ok(stream) => stream,
-      Err(e) => {
-        eprintln!("Failed to connect to {}:{}", ip, port);
-        return Err(Box::new(e));
-      }
-    };
-    Ok(TcpClient{ip, port, stream})
-  }
-
-  pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-    for i in 1..10 {
-      let message = format!("Hi from {}", process::id()).into_bytes();
-      let _ = self.stream.write_all(&message).await;
-
+impl<T: BoatState> TcpClient<T> {
+    pub async fn new(
+        ip: IpAddr,
+        port: u16,
+        boat_state: T,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let stream = match TcpStream::connect((ip, port)).await {
+            Ok(stream) => stream,
+            Err(e) => {
+                eprintln!("Failed to connect to {}:{}", ip, port);
+                return Err(Box::new(e));
+            }
+        };
+        Ok(TcpClient {
+            ip,
+            port,
+            stream,
+            boat_state,
+        })
     }
-    Ok(())
-  }
+
+    pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        loop {
+            //send AIS data every second
+            let data = self.boat_state.get_ais_data();
+            let encoded_ais_data = utils::encode_ais_data(data).await?;
+            self.stream.write_all(encoded_ais_data.as_bytes()).await?;
+            sleep(std::time::Duration::from_secs(1));
+        }
+    }
 }

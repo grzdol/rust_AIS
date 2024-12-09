@@ -1,5 +1,5 @@
-use tokio::net::TcpStream;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -7,7 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Connected to server!");
 
     let message = b"Hello, server!";
-    
+
     // Send a message to the server
     stream.write_all(message).await?;
     println!("Sent: {:?}", String::from_utf8_lossy(message));
