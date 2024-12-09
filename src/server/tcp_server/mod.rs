@@ -59,6 +59,7 @@ impl TcpServer {
             // ToDo, we shouldn't copy here
             let message = Bytes::from(buf[..n].to_vec());
             tx.send(message)?;
+            println!("dupersko");
         }
         Ok(())
     }
@@ -79,16 +80,35 @@ impl TcpServer {
         }
     }
 
-    async fn opencpn_publisher(mut rx: UnboundedReceiver<Bytes>, mut opencpn_stream: TcpStream) {
+    async fn opencpn_publisher(mut rx: UnboundedReceiver<Bytes>, mut opencpn_stream: TcpStream) -> Result<(), Box<dyn std::error::Error>>{
         while let Some(message) = rx.recv().await {
-            println!("{:?}", message);
-            opencpn_stream.write_all(&message);
+            println!("Received message: {:?}", String::from_utf8_lossy(&message));
+
+            // Send the NMEA sentence to the OpenCPN server
+            if let Err(e) = opencpn_stream.write_all(&message).await {
+                eprintln!("Failed to write to stream: {}. Reconnecting...", e);
+                break; // Exit loop to reconnect
+            }
+
+            // Flush the stream to ensure the message is sent immediately
+            if let Err(e) = opencpn_stream.flush().await {
+                eprintln!("Failed to flush stream: {}. Reconnecting...", e);
+                break; // Exit loop to reconnect
+            }
+
+            println!("Sent: {:?}", String::from_utf8_lossy(&message));
         }
+        Ok(())
     }
 
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
-        TcpServer::accept_client_loop(self.tx, self.listener);
-        TcpServer::opencpn_publisher(self.rx, self.opencpn_stream).await;
+        let accept_loop = tokio::spawn(async move {
+            let _ = TcpServer::accept_client_loop(self.tx, self.listener).await;
+        });
+        let publisher = tokio::spawn(async move {
+            let _ = TcpServer::opencpn_publisher(self.rx, self.opencpn_stream).await;
+        });
+        tokio::join!(accept_loop, publisher);
         Ok(())
     }
 }

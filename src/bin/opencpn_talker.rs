@@ -8,7 +8,7 @@ fn main() {
     let server_address = "0.0.0.0:2137"; // Replace with your OpenCPN IP and port
 
     // Example NMEA sentence (GGA for GPS position)
-    let nmea_sentence = b"!AIVDM,1,1,,A,14eG;o@034o8sd<L9i:a;WF>062D,0*7D";
+    let nmea_sentence = b"!AIVDM,1,1,,A,1000K>@P00154f0O<TG7MP000000,0*6E";
 
     // Connect to OpenCPN server
     match TcpStream::connect(server_address) {
@@ -21,6 +21,7 @@ fn main() {
                     eprintln!("Failed to send data: {}", e);
                     break;
                 }
+                println!("{:?}", nmea_sentence);
                 // println!("Sent: {}", nmea_sentence);
 
                 // Wait before sending the next sentence
