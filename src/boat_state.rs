@@ -4,7 +4,7 @@
  * This module is for representing a boat state.
  * Since we would probably need more than one representation of this state,
  * ex. artificial state and like something that takes real data, which
- * we will probably do in onre than one way, it's seems reasonable to define interface
+ * we will probably do in more than one way, it's seems reasonable to define interface
  * for those states.
  *
  *

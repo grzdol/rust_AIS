@@ -1,14 +1,11 @@
 mod boat_state;
 mod client;
 mod server;
-mod single_thread_tcp_server;
 mod utils;
 use std::net::{IpAddr, Ipv4Addr};
 
-use boat_state::boat_state_mockup::{self, BoatStateMockup};
+use boat_state::boat_state_mockup::BoatStateMockup;
 use client::tcp_client;
-use futures::future::join_all;
-use server::tcp_server;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
