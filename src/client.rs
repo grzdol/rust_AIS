@@ -1,25 +1,14 @@
 use serde::Serialize;
 use tokio::task;
-
+mod sender;
+use sender::Sender;
 pub mod tcp_client;
-pub trait Sender<T>: Send + Sync + 'static
-where
-    T: Serialize + Send + 'static,
-{
-    fn send(&mut self, data: T) -> impl std::future::Future<Output = ()> + Send;
-    fn get_data(&mut self) -> impl std::future::Future<Output = T> + Send;
+pub mod tcp_udp_client;
 
-    fn run(&mut self) -> impl std::future::Future<Output = ()> + Send {async {
-        loop {
-            let data = self.get_data().await;
-            self.send(data).await;
-        }
-    } }
-}
 
 pub trait Client<T, S>:
 where
-    T: Serialize + Send + 'static,
+    T: Send + 'static,
     S: Sender<T> + Send + Sync + 'static,
 {
     fn get_weak_sender(&mut self) -> S;
