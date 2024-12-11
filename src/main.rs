@@ -37,12 +37,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let handle_alefant = tokio::spawn(async move {
-        let mut alefant_crew = tcp_client::TcpClient::new(localhost_v4, 6969, alefant).await.unwrap();
+        let mut alefant_crew = tcp_client::TcpClient::new(localhost_v4, 6969, alefant)
+            .await
+            .unwrap();
         let _ = alefant_crew.run().await;
     });
 
     let handle_waternimf = tokio::spawn(async move {
-        let mut waternimf_crew = tcp_client::TcpClient::new(localhost_v4, 6969, waternimf).await.unwrap();
+        let mut waternimf_crew = tcp_client::TcpClient::new(localhost_v4, 6969, waternimf)
+            .await
+            .unwrap();
         let _ = waternimf_crew.run().await;
     });
 

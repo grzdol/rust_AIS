@@ -59,7 +59,6 @@ impl TcpServer {
             // ToDo, we shouldn't copy here
             let message = Bytes::from(buf[..n].to_vec());
             tx.send(message)?;
-            println!("dupersko");
         }
         Ok(())
     }
@@ -80,7 +79,10 @@ impl TcpServer {
         }
     }
 
-    async fn opencpn_publisher(mut rx: UnboundedReceiver<Bytes>, mut opencpn_stream: TcpStream) -> Result<(), Box<dyn std::error::Error>>{
+    async fn opencpn_publisher(
+        mut rx: UnboundedReceiver<Bytes>,
+        mut opencpn_stream: TcpStream,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         while let Some(message) = rx.recv().await {
             println!("Received message: {:?}", String::from_utf8_lossy(&message));
 
