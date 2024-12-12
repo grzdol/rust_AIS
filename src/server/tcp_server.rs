@@ -87,18 +87,18 @@ impl TcpServer {
             println!("Received message: {:?}", String::from_utf8_lossy(&message));
 
             // Send the NMEA sentence to the OpenCPN server
-            if let Err(e) = opencpn_stream.write_all(&message).await {
-                eprintln!("Failed to write to stream: {}. Reconnecting...", e);
-                break; // Exit loop to reconnect
-            }
+            // if let Err(e) = opencpn_stream.write_all(&message).await {
+            //     eprintln!("Failed to write to stream: {}. Reconnecting...", e);
+            //     break; // Exit loop to reconnect
+            // }
 
-            // Flush the stream to ensure the message is sent immediately
-            if let Err(e) = opencpn_stream.flush().await {
-                eprintln!("Failed to flush stream: {}. Reconnecting...", e);
-                break; // Exit loop to reconnect
-            }
+            // // Flush the stream to ensure the message is sent immediately
+            // if let Err(e) = opencpn_stream.flush().await {
+            //     eprintln!("Failed to flush stream: {}. Reconnecting...", e);
+            //     break; // Exit loop to reconnect
+            // }
 
-            println!("Sent: {:?}", String::from_utf8_lossy(&message));
+            // println!("Sent: {:?}", String::from_utf8_lossy(&message));
         }
         Ok(())
     }

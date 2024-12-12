@@ -1,9 +1,13 @@
 use std::net::IpAddr;
 
 use std::net::SocketAddr;
+use bytes::Bytes;
 use tokio::net::{TcpStream, UdpSocket};
 
 use super::Client;
+use crate::boat_state::BoatState;
+use crate::client::sender::udp_weak_sender::UdpWeakSender;
+use crate::client::sender::tcp_strong_sender::TcpStrongSender;
 
 pub struct TcpUdpClient {
     tcp_stream: TcpStream,
@@ -25,5 +29,15 @@ impl TcpUdpClient {
             udp_socket: local_udp_sock,
             udp_addr,
         })
+    }
+}
+
+impl<T> Client<T, TcpStrongSender, UdpWeakSender<T>> for TcpUdpClient where  T: BoatState {
+    fn get_weak_sender(&mut self) -> UdpWeakSender<T> {
+        todo!()
+    }
+
+    fn get_strong_sender(&mut self) -> TcpStrongSender {
+        todo!()
     }
 }

@@ -9,6 +9,12 @@ pub struct UdpReceiver {
   socket: UdpSocket
 }
 
+impl UdpReceiver {
+    pub fn new(sender: tokio::sync::mpsc::UnboundedSender<Bytes>, socket: UdpSocket) -> Self {
+        Self { sender, socket }
+    }
+}
+
 impl Receiver<Bytes> for UdpReceiver {
 
     async fn recv(&mut self) -> Bytes {

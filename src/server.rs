@@ -12,6 +12,9 @@ where
 {
     fn get_strong_receiver(&mut self) -> Strong;
     fn get_weak_receiver(&mut self) -> Weak;
+    // async fn strong_receiver_spawner(&mut self) {
+    //     tokio::spawn(future)
+    // }
 
     async fn run(&mut self) {
         let mut strong_receiver = self.get_strong_receiver();

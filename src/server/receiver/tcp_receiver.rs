@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use tokio::{io::AsyncReadExt, net::{TcpStream, UdpSocket}};
+use tokio::{io::AsyncReadExt, net::{TcpStream, UdpSocket}, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
 
 
 use super::Receiver;
@@ -22,5 +22,11 @@ impl Receiver<Bytes> for TcpReceiver {
     async fn publish_data(&mut self, data: Bytes) -> () {
       self.sender.send(data);
     } 
+}
+
+impl TcpReceiver {
+  pub fn new(sender: UnboundedSender<Bytes>, stream: TcpStream) -> Self{
+    TcpReceiver{sender, stream }
+  }
 }
 

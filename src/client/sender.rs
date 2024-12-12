@@ -1,6 +1,6 @@
 use serde::Serialize;
-mod tcp_strong_sender;
-mod udp_weak_sender;
+pub mod tcp_strong_sender;
+pub mod udp_weak_sender;
 
 pub trait Sender<T>: Send + Sync + 'static
 where
