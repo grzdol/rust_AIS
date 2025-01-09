@@ -1,8 +1,18 @@
+use std::string;
+
+use chrono::{DateTime, Utc};
+use futures::AsyncRead;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tokio::{net::TcpStream, time};
+use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
+use tokio_stream::StreamExt;
+use futures::sink::SinkExt;
 
 type Error = Box<dyn std::error::Error>;
+
+static TIMESTAMP: &str = "TIMESTAMP";
 #[derive(Serialize)]
 pub struct AISData {
     course: f32,
@@ -33,6 +43,7 @@ impl AISData {
 #[derive(Deserialize)]
 struct AISResponse {
     ais_message: String,
+    timestamp: String, //isoformat
 }
 
 pub async fn encode_ais_data(data: AISData) -> Result<String, Error> {
@@ -47,4 +58,28 @@ pub async fn encode_ais_data(data: AISData) -> Result<String, Error> {
         .json::<AISResponse>()
         .await?;
     Ok(response.ais_message)
+}
+
+pub async fn get_next_framed_ais_message(framed: &mut FramedRead<TcpStream, LinesCodec>) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
+    if let Some(line) = framed.next().await {
+        return split_message_on_TIMESTAMP(line?);
+        
+    } else {
+        Err("No more lines in the stream".into())
+    }
+}
+
+pub fn split_message_on_TIMESTAMP(msg: String) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
+    if let Some(pos) = msg.find(TIMESTAMP) {
+        let (before, after) = msg.split_at(pos);
+        let timestamp_str = &after[TIMESTAMP.len()..].trim();
+        let timestamp = DateTime::parse_from_rfc3339(timestamp_str)?.with_timezone(&Utc);
+        Ok((before.to_string(), timestamp))
+    } else {
+        Err("Incorrect message".into())
+    }
+}
+
+pub fn build_timestamped_ais_message(data: AISResponse) -> String{
+    data.ais_message + TIMESTAMP + &data.timestamp + "\n"
 }

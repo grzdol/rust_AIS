@@ -80,7 +80,10 @@ impl TcpServer {
         }
     }
 
-    async fn opencpn_publisher(mut rx: UnboundedReceiver<Bytes>, mut opencpn_stream: TcpStream) -> Result<(), Box<dyn std::error::Error>>{
+    async fn opencpn_publisher(
+        mut rx: UnboundedReceiver<Bytes>,
+        mut opencpn_stream: TcpStream,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         while let Some(message) = rx.recv().await {
             println!("Received message: {:?}", String::from_utf8_lossy(&message));
 
