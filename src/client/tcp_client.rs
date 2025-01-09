@@ -37,7 +37,6 @@ impl<T: BoatState> TcpClient<T> {
 
     pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
-            println!("dupeczka");
             //send AIS data every second
             let data = self.boat_state.get_ais_data();
             let encoded_ais_data = utils::encode_ais_data(data).await?;

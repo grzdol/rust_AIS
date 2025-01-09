@@ -1,14 +1,14 @@
 use std::string;
 
 use chrono::{DateTime, Utc};
+use futures::sink::SinkExt;
 use futures::AsyncRead;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::{net::TcpStream, time};
-use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 use tokio_stream::StreamExt;
-use futures::sink::SinkExt;
+use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
 type Error = Box<dyn std::error::Error>;
 
@@ -41,9 +41,9 @@ impl AISData {
 }
 
 #[derive(Deserialize)]
-struct AISResponse {
-    ais_message: String,
-    timestamp: String, //isoformat
+pub struct AISResponse {
+    pub ais_message: String,
+    pub timestamp: String, //isoformat
 }
 
 pub async fn encode_ais_data(data: AISData) -> Result<String, Error> {
@@ -60,16 +60,19 @@ pub async fn encode_ais_data(data: AISData) -> Result<String, Error> {
     Ok(response.ais_message)
 }
 
-pub async fn get_next_framed_ais_message(framed: &mut FramedRead<TcpStream, LinesCodec>) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
+pub async fn get_next_framed_ais_message(
+    framed: &mut FramedRead<TcpStream, LinesCodec>,
+) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
     if let Some(line) = framed.next().await {
         return split_message_on_TIMESTAMP(line?);
-        
     } else {
         Err("No more lines in the stream".into())
     }
 }
 
-pub fn split_message_on_TIMESTAMP(msg: String) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
+pub fn split_message_on_TIMESTAMP(
+    msg: String,
+) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
     if let Some(pos) = msg.find(TIMESTAMP) {
         let (before, after) = msg.split_at(pos);
         let timestamp_str = &after[TIMESTAMP.len()..].trim();
@@ -80,6 +83,6 @@ pub fn split_message_on_TIMESTAMP(msg: String) -> Result<(String, DateTime<Utc>)
     }
 }
 
-pub fn build_timestamped_ais_message(data: AISResponse) -> String{
+pub fn build_timestamped_ais_message(data: AISResponse) -> String {
     data.ais_message + TIMESTAMP + &data.timestamp + "\n"
 }
