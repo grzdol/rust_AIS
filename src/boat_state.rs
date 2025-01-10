@@ -11,7 +11,7 @@
  */
 use crate::utils::AISData;
 pub mod boat_state_mockup;
-pub trait BoatState {
+pub trait BoatState : Send{
     fn get_ais_data(&self) -> AISData;
     fn get_current_position(&self) -> (f32, f32);
     fn get_current_course(&self) -> f32;

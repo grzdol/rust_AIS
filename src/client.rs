@@ -4,11 +4,11 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use futures::SinkExt;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::{self, channel};
 use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
 use tokio_util::codec::{FramedWrite, LinesCodec};
-use tokio::io::AsyncWriteExt;
 
 use crate::{
     boat_state::BoatState,
@@ -27,7 +27,7 @@ pub struct TcpUdpClient<T: BoatState> {
     boat_state: T,
 }
 
-impl<T: BoatState> TcpUdpClient<T> {
+impl<T: BoatState + 'static> TcpUdpClient<T> {
     pub fn new(
         tcp_addr: IpAddr,
         tcp_port: u16,
@@ -88,20 +88,49 @@ impl<T: BoatState> TcpUdpClient<T> {
         tcp_port: u16,
         mut boat_state_receiver: broadcast::Receiver<String>,
     ) {
-      let stream = match TcpStream::connect((tcp_addr, tcp_port)).await {
-        Ok(stream) => stream,
-        Err(e) => {
-            eprintln!("Failed to connect to {}:{}", tcp_addr, tcp_port);
-            // return Err(Box::new(e));
-            panic!()
-        }
-    };
+        let stream = match TcpStream::connect((tcp_addr, tcp_port)).await {
+            Ok(stream) => stream,
+            Err(e) => {
+                eprintln!("Failed to connect to {}:{}", tcp_addr, tcp_port);
+                // return Err(Box::new(e));
+                panic!()
+            }
+        };
 
-      let mut framed = FramedWrite::new(stream, LinesCodec::new());
-      loop {
-        let msg = boat_state_receiver.recv().await.unwrap();
-        let _ = framed.send(msg).await;
-      }
-        
+        let mut framed = FramedWrite::new(stream, LinesCodec::new());
+        loop {
+            let msg = boat_state_receiver.recv().await.unwrap();
+            let _ = framed.send(msg).await;
+        }
+    }
+
+    pub async fn run(self) {
+        let (tx, _rx): (broadcast::Sender<String>, broadcast::Receiver<String>) =
+            broadcast::channel(4096);
+        let strong_channel = tx.subscribe();
+        let weak_channel = tx.subscribe();
+        let strong_sender = tokio::spawn(async move {
+            let _ = TcpUdpClient::<T>::create_and_run_strong_sender(
+                self.tcp_addr,
+                self.tcp_port,
+                strong_channel,
+            )
+            .await;
+        });
+        let weak_sender = tokio::spawn(async move {
+            let _ = TcpUdpClient::<T>::create_and_run_weak_sender(
+                self.local_udp_addr,
+                self.local_udp_port,
+                self.server_udp_addr,
+                self.server_udp_port,
+                weak_channel,
+            )
+            .await;
+        });
+        let boat_state_publisher = tokio::spawn(async move {
+            let _ = TcpUdpClient::<T>::boat_state_handler(self.boat_state, tx).await;
+        });
+
+        let _ = tokio::join!(strong_sender, weak_sender, boat_state_publisher);
     }
 }
