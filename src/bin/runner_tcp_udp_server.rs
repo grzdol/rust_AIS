@@ -30,15 +30,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("afeafaafa");
     print!("afafafafafa");
 
-    // let server = TcpUdpServer::new(
-    //     localhost_v4,
-    //     6969,
-    //     "0.0.0.0:2137",
-    //     "0.0.0.0:2136",
-    //     localhost_v4,
-    //     4200,
-    // )
-    // .await?;
     let server = TcpUdpServer::new(
         "127.0.0.1:6969",
         "127.0.0.1:4200",
@@ -53,20 +44,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     debug!("afaefaefaes");
 
-    // let handle_alefant = tokio::spawn(async move {
-    //     let localhost_v4 = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-    //     let mut alefant_crew = TcpUdpClient::new(
-    //         localhost_v4,
-    //         6969,
-    //         localhost_v4,
-    //         4210,
-    //         localhost_v4,
-    //         4200,
-    //         alefant,
-    //     )
-    //     .run()
-    //     .await;
-    // });
     let handle_alefant = tokio::spawn(async move {
         let mut alefant_crew = TcpUdpClient::new(
             "127.0.0.1:6969",
@@ -90,6 +67,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("dupa14");
 
     tokio::join!(handle_server, handle_alefant, handle_waternimf);
-    // tokio::join!(handle_server);
     Ok(())
 }

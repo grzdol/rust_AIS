@@ -16,8 +16,8 @@ use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 use crate::utils::{get_next_framed_ais_message, split_message_on_TIMESTAMP};
 
 pub struct TcpUdpServer {
-    strong_listener: TcpListener,
-    weak_receiever: UdpSocket,              //accepting new connections
+    strong_listener: TcpListener,           //accepting new connections
+    weak_receiever: UdpSocket,              //receiveing data from weak senders
     real_time_publishing_stream: TcpStream, //here we publish data received from weak sender
     history_publishing_stream: TcpStream,   //here we publish data received from strong sender
 }
