@@ -1,5 +1,6 @@
 use futures::channel::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc;
+pub mod broadcaster_mockup;
 
 /**
  * This is a mechanism of passing information between Clients.
@@ -7,26 +8,31 @@ use tokio::sync::mpsc;
  * it may be able to broadcast data through radio to other boats, thats why we need it.
  */
 
-pub trait Broadcaster<M:Send + Copy + 'static> {
-    fn broadcast<T: Send>(arg: T, msg: M) -> impl std::future::Future<Output = ()> + Send;
-    fn recv_from_broadcast<T: Send>(arg: T)
-        -> impl std::future::Future<Output = M> + Send;
+pub trait Broadcaster<MessageType, SenderArgs, ReceiverArgs, LoggerArgs>
+where
+    SenderArgs: Send + Sync + 'static,
+    ReceiverArgs: Send + Sync + 'static,
+    LoggerArgs: Send + Sync + 'static,
+    MessageType: Send + Copy + 'static
+{
+    fn broadcast(arg: &mut SenderArgs, msg: MessageType) -> impl std::future::Future<Output = ()> + Send;
+    fn recv_from_broadcast(arg: &mut ReceiverArgs) -> impl std::future::Future<Output = MessageType> + Send;
     /**
      * This method helps avoiding cycles in broadcast. If broadcaster receives msg second time,
      * it checks if it has already broadcasted this msg and doesnt propagate. It can be achived by hashset
      * on mmsi + timestamp.
      */
-    fn check_if_msg_already_passed<T>(msg: T) -> bool;
+    fn check_if_msg_already_passed(msg: MessageType) -> bool;
     /**
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
      */
-    fn log_received_from_broadcast<T>(arg: T, msg: M);
+    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MessageType);
 
     //worker for broadcasting data
-    fn run_sender<T: Sync + Send>(
-        arg: T,
-        mut recv_channel: mpsc::UnboundedReceiver<M>,
+    fn run_sender(
+        mut arg: SenderArgs,
+        mut recv_channel: mpsc::UnboundedReceiver<MessageType>,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {
@@ -37,19 +43,20 @@ pub trait Broadcaster<M:Send + Copy + 'static> {
                     continue;
                 }
                 //here we simply copy msg since our msgs are pretty short, we accept that.
-                Self::broadcast(&arg, msg).await;
+                Self::broadcast(&mut arg, msg).await;
             }
         }
     }
     //worker for receiving broadcast msgs from other clients
-    fn run_receiver<T: Sync + Send>(
-        arg: T,
-        send_channel: mpsc::UnboundedSender<M>,
+    fn run_receiver(
+        mut arg: ReceiverArgs,
+        mut log_arg: LoggerArgs,
+        send_channel: mpsc::UnboundedSender<MessageType>,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {
-                let msg: M = Self::recv_from_broadcast(&arg).await;
-                Self::log_received_from_broadcast(&arg, msg);
+                let msg: MessageType = Self::recv_from_broadcast(&mut arg).await;
+                Self::log_received_from_broadcast(&mut log_arg, msg);
                 let _ = send_channel.send(msg);
             }
         }
@@ -68,29 +75,27 @@ pub trait Broadcaster<M:Send + Copy + 'static> {
     //   }
     // }
 
-    fn run<T, U, V>(
-        receiver_args: T,
-        sender_args: U,
-        recv_channel: mpsc::UnboundedReceiver<M>,
-        send_channel: mpsc::UnboundedSender<M>,
+    fn run(
+        receiver_args: ReceiverArgs,
+        sender_args: SenderArgs,
+        log_arg: LoggerArgs,
+        recv_channel: mpsc::UnboundedReceiver<MessageType>,
+        send_channel: mpsc::UnboundedSender<MessageType>,
     ) -> impl std::future::Future<Output = ()> + Send
-    where
-        T: Send + Sync + 'static,
-        U: Send + Sync + 'static,
     {
         async move {
-          let receiver = tokio::spawn({
-            async move {
-              Self::run_receiver(receiver_args, send_channel).await;
-            }
-          });
+            let receiver = tokio::spawn({
+                async move {
+                    Self::run_receiver(receiver_args, log_arg, send_channel).await;
+                }
+            });
 
-          let sender = tokio::spawn({
-            async move {
-              Self::run_sender(sender_args, recv_channel).await;
-            }
-          });
-          let _ = tokio::join!(receiver, sender);
+            let sender = tokio::spawn({
+                async move {
+                    Self::run_sender(sender_args, recv_channel).await;
+                }
+            });
+            let _ = tokio::join!(receiver, sender);
         }
     }
 }
