@@ -79,10 +79,11 @@ pub fn split_message_on_TIMESTAMP(
         let timestamp = DateTime::parse_from_rfc3339(timestamp_str)?.with_timezone(&Utc);
         Ok((before.to_string(), timestamp))
     } else {
-        Err("Incorrect message".into())
+        // println!("{}", msg);
+        Err(msg.into())
     }
 }
 
 pub fn build_timestamped_ais_message(data: AISResponse) -> String {
-    data.ais_message + TIMESTAMP + &data.timestamp + "\n"
+    data.ais_message + TIMESTAMP + &data.timestamp
 }

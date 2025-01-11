@@ -78,9 +78,21 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
             .connect((server_udp_addr, server_udp_port))
             .await;
         loop {
-            let msg = boat_state_receiver.recv().await.unwrap();
-            let _ = local_udp_sock.send(msg.as_bytes()).await;
+            match boat_state_receiver.recv().await {
+                Ok(mut msg) => {
+                    msg.push('\n');
+                    if let Err(e) = local_udp_sock.send(msg.as_bytes()).await {
+                        eprintln!("Error sending message: {}", e);
+                        break;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error receiving boat state: {}", e);
+                    break;
+                }
+            }
         }
+       
     }
 
     async fn create_and_run_strong_sender(
@@ -99,8 +111,18 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
 
         let mut framed = FramedWrite::new(stream, LinesCodec::new());
         loop {
-            let msg = boat_state_receiver.recv().await.unwrap();
-            let _ = framed.send(msg).await;
+            match boat_state_receiver.recv().await {
+                Ok(msg) => {
+                    if let Err(e) = framed.send(msg).await {
+                        eprintln!("Error sending message: {}", e);
+                        break;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error receiving boat state: {}", e);
+                    break;
+                }
+            }
         }
     }
 
