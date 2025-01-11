@@ -65,7 +65,7 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         }
     }
 
-    async fn create_and_run_weak_sender(
+    async fn run_weak_sender(
         local_udp_addr: &str,
         server_udp_addr: &str,
         mut boat_state_receiver: broadcast::Receiver<String>,
@@ -93,7 +93,7 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         Ok(())
     }
 
-    async fn create_and_run_strong_sender(
+    async fn run_strong_sender(
         tcp_addr: &str,
         mut boat_state_receiver: broadcast::Receiver<String>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -129,7 +129,7 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         let strong_channel = tx.subscribe();
         let weak_channel = tx.subscribe();
         let strong_sender = tokio::spawn(async move {
-            let _ = TcpUdpClient::<T>::create_and_run_strong_sender(&self.tcp_addr, strong_channel)
+            let _ = TcpUdpClient::<T>::run_strong_sender(&self.tcp_addr, strong_channel)
                 .await;
         });
 
@@ -139,7 +139,7 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         let weak = send_channel.clone();
 
         let weak_sender = tokio::spawn(async move {
-            let _ = TcpUdpClient::<T>::create_and_run_weak_sender(
+            let _ = TcpUdpClient::<T>::run_weak_sender(
                 &self.local_udp_addr,
                 &self.server_udp_addr,
                 weak_channel,
@@ -155,7 +155,7 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
             async move {
                 let recv1 = self.send_channel.subscribe();
                 
-                BroadcasterMockup::<MsgType>::run(
+                BroadcasterMockup::run(
                     recv1,
                     self.send_channel,
                     (),

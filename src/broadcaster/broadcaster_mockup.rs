@@ -1,17 +1,16 @@
-use std::fmt::{Debug, Display};
+use std::{collections::HashSet, fmt::{Debug, Display}, hash::Hash};
 
 use tokio::sync::broadcast;
 
 use crate::broadcaster::Broadcaster;
 
-pub struct BroadcasterMockup<M> {
-    send_channel: broadcast::Sender<M>,
-    recv_channel: broadcast::Receiver<M>,
+pub struct BroadcasterMockup {
+
 }
 
-impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup<M>
+impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup
 where
-    M: Send + Copy + Debug + 'static,
+    M: Send + Copy + Debug + Eq + Hash+ 'static,
 {
     fn broadcast(
         arg: &mut broadcast::Sender<M>,
@@ -28,20 +27,7 @@ where
         async move { arg.recv().await.unwrap() }
     }
 
-    fn check_if_msg_already_passed(msg: M) -> bool {
-        rand::random()
-    }
-
-    fn log_received_from_broadcast(arg: &mut (), msg: M) {
+    fn log_received_from_broadcast(_: &mut (), msg: M) {
         println!("GOT MSG FROM BROADCAST {:?}", msg);
-    }
-}
-
-impl<M> BroadcasterMockup<M> {
-    pub fn new(send_channel: broadcast::Sender<M>, recv_channel: broadcast::Receiver<M>) -> Self {
-        Self {
-            send_channel,
-            recv_channel,
-        }
     }
 }
