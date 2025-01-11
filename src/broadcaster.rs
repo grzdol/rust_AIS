@@ -27,7 +27,7 @@ where
     fn recv_from_broadcast(
         arg: &mut ReceiverArgs,
     ) -> impl std::future::Future<Output = MessageType> + Send;
-    
+
     /**
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
@@ -38,7 +38,10 @@ where
      * This method helps avoiding cycles in broadcast. If broadcaster receives msg second time,
      * it checks if it has already broadcasted this msg and doesnt propagate.
      */
-    fn check_if_msg_already_passed(msg: MessageType, old_msg_set: &mut HashSet<MessageType>) -> bool {
+    fn check_if_msg_already_passed(
+        msg: MessageType,
+        old_msg_set: &mut HashSet<MessageType>,
+    ) -> bool {
         if old_msg_set.contains(&msg) {
             true
         } else {
@@ -50,7 +53,7 @@ where
     fn run_sender(
         mut arg: SenderArgs,
         mut recv_channel: mpsc::UnboundedReceiver<MessageType>,
-        mut old_msg_set: HashSet<MessageType>
+        mut old_msg_set: HashSet<MessageType>,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {

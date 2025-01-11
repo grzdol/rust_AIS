@@ -4,7 +4,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use tokio::sync::broadcast;
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
-use rust_AIS::client::TcpUdpClient;
+use rust_AIS::client::tcp_udp_client::TcpUdpClient;
 use rust_AIS::server::{self, TcpUdpServer};
 
 #[tokio::main]

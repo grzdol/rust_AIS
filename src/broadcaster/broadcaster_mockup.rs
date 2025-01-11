@@ -1,16 +1,18 @@
-use std::{collections::HashSet, fmt::{Debug, Display}, hash::Hash};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display},
+    hash::Hash,
+};
 
 use tokio::sync::broadcast;
 
 use crate::broadcaster::Broadcaster;
 
-pub struct BroadcasterMockup {
-
-}
+pub struct BroadcasterMockup {}
 
 impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup
 where
-    M: Send + Copy + Debug + Eq + Hash+ 'static,
+    M: Send + Copy + Debug + Eq + Hash + 'static,
 {
     fn broadcast(
         arg: &mut broadcast::Sender<M>,

@@ -10,8 +10,6 @@ use tokio::{net::TcpStream, time};
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
-
-
 static TIMESTAMP: &str = "TIMESTAMP";
 static MSGTYPESIZE: usize = 256;
 type Error = Box<dyn std::error::Error>;
@@ -92,12 +90,15 @@ pub fn build_timestamped_ais_message(data: AISResponse) -> String {
     data.ais_message + TIMESTAMP + &data.timestamp
 }
 
-
-
 pub fn string_to_msg_type(s: String) -> MsgType {
     let mut msg_type = [0u8; MSGTYPESIZE];
     let bytes = s.as_bytes();
     let len = bytes.len().min(MSGTYPESIZE);
     msg_type[..len].copy_from_slice(&bytes[..len]);
     msg_type
+}
+
+pub fn msg_type_to_string(msg: MsgType) -> String {
+    let len = msg.iter().position(|&x| x == 0).unwrap_or(msg.len());
+    String::from_utf8_lossy(&msg[..len]).to_string()
 }
