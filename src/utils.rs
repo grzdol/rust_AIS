@@ -11,6 +11,7 @@ use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
 type Error = Box<dyn std::error::Error>;
+pub type MsgType = [u8; 1024];
 
 static TIMESTAMP: &str = "TIMESTAMP";
 #[derive(Serialize)]

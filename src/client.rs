@@ -9,10 +9,13 @@ use tokio::net::TcpStream;
 use tokio::sync::broadcast::{self, channel};
 use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
 use tokio_util::codec::{FramedWrite, LinesCodec};
+use tokio::sync::mpsc;
 
+use crate::broadcaster::Broadcaster;
 use crate::{
     boat_state::BoatState,
-    utils::{self, build_timestamped_ais_message, encode_ais_data, AISResponse},
+    utils::{self, build_timestamped_ais_message, encode_ais_data, AISResponse, MsgType},
+    broadcaster::broadcaster_mockup::BroadcasterMockup
 };
 
 pub mod tcp_client;
@@ -22,15 +25,19 @@ pub struct TcpUdpClient<T: BoatState> {
     local_udp_addr: String,
     server_udp_addr: String,
     boat_state: T,
+    send_channel: broadcast::Sender<MsgType>,
+    recv_channel: broadcast::Receiver<MsgType>
 }
 
 impl<T: BoatState + 'static> TcpUdpClient<T> {
-    pub fn new(tcp_addr: &str, local_udp_addr: &str, server_udp_addr: &str, boat_state: T) -> Self {
+    pub fn new(tcp_addr: &str, local_udp_addr: &str, server_udp_addr: &str, boat_state: T, send_channel: broadcast::Sender<MsgType>,recv_channel: broadcast::Receiver<MsgType>) -> Self {
         TcpUdpClient {
             tcp_addr: tcp_addr.to_string(),
             local_udp_addr: local_udp_addr.to_string(),
             server_udp_addr: server_udp_addr.to_string(),
             boat_state,
+            send_channel,
+            recv_channel
         }
     }
 
@@ -125,6 +132,15 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
             let _ = TcpUdpClient::<T>::boat_state_handler(self.boat_state, tx).await;
         });
 
-        let _ = tokio::join!(strong_sender, weak_sender, boat_state_publisher);
+        let broadcaster_handle = tokio::spawn({
+            async move {
+                let recv1 = self.send_channel.subscribe();
+                let (send_channel, recv_channel) = mpsc::unbounded_channel();
+                BroadcasterMockup::<MsgType>::run(recv1, self.send_channel, (), recv_channel, send_channel).await;
+            }
+        });
+ 
+
+        let _ = tokio::join!(strong_sender, weak_sender, boat_state_publisher, broadcaster_handle);
     }
 }

@@ -1,4 +1,6 @@
 use log::debug;
+use rust_AIS::utils::MsgType;
+use tokio::sync::broadcast;
 use std::net::{IpAddr, Ipv4Addr};
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
@@ -44,12 +46,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     debug!("afaefaefaes");
 
+    let (send_broadcast, recv_broadcast) = broadcast::channel::<MsgType>(1024);
+    let cp_send = send_broadcast.clone();
+    let cp_recv = send_broadcast.subscribe();
     let handle_alefant = tokio::spawn(async move {
         let mut alefant_crew = TcpUdpClient::new(
             "127.0.0.1:6969",
             "127.0.0.1:4210",
             "127.0.0.1:4200",
             alefant,
+            cp_send,
+            cp_recv
         );
         alefant_crew.run().await;
     });
@@ -61,6 +68,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "127.0.0.1:4211",
             "127.0.0.1:4200",
             waternimf,
+            send_broadcast,
+            recv_broadcast
         );
         waternimf_crew.run().await;
     });

@@ -4,11 +4,16 @@ use tokio::sync::broadcast;
 
 use crate::broadcaster::Broadcaster;
 
-pub struct BroadcasterMockup {}
 
-impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup
+pub struct BroadcasterMockup<M> {
+  send_channel: broadcast::Sender<M>, 
+  recv_channel: broadcast::Receiver<M>
+
+}
+
+impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup<M>
 where
-    M: Send + Copy + Display + 'static,
+    M: Send + Copy + 'static,
 {
     fn broadcast(arg: &mut broadcast::Sender<M>, msg: M) -> impl std::future::Future<Output = ()> + Send {
         async move {
@@ -27,6 +32,13 @@ where
     }
 
     fn log_received_from_broadcast(arg: &mut (), msg: M) {
-        println!("{}", msg);
+        println!("GOT MSG FROM BROADCAST");
     }
+}
+
+impl<M> BroadcasterMockup<M> {
+    pub fn new(send_channel: broadcast::Sender<M>, recv_channel: broadcast::Receiver<M>) -> Self {
+        Self { send_channel, recv_channel }
+    }
+    
 }
