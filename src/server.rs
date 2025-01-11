@@ -16,56 +16,29 @@ use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 use crate::utils::{get_next_framed_ais_message, split_message_on_TIMESTAMP};
 
 pub struct TcpUdpServer {
-    listener: TcpListener,                  //accepting new connections
+    strong_listener: TcpListener,
+    weak_receiever: UdpSocket,              //accepting new connections
     real_time_publishing_stream: TcpStream, //here we publish data received from weak sender
     history_publishing_stream: TcpStream,   //here we publish data received from strong sender
-    udp_ip: IpAddr,
-    udp_port: u16,
 }
 
 impl TcpUdpServer {
     pub async fn new(
-        ip: IpAddr,
-        port: u16,
+        listener_addr: &str,
+        udp_receiver_addr: &str,
         real_time_server_address: &str,
         history_server_address: &str,
-        udp_ip: IpAddr,
-        udp_port: u16,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let listener = match TcpListener::bind((ip, port)).await {
-            Ok(listener) => listener,
-            Err(e) => {
-                eprintln!("Failed to bind to {}:{}", ip, port);
-                return Err(Box::new(e));
-            }
-        };
-
-        let real_time_publishing_stream = match TcpStream::connect(real_time_server_address).await {
-            Ok(stream) => {
-                println!("Connected to OpenCPN at {}", real_time_server_address);
-                stream
-            }
-            Err(e) => {
-                return Err(Box::new(e));
-            }
-        };
-
-        let history_publishing_stream = match TcpStream::connect(history_server_address).await {
-            Ok(stream) => {
-                println!("Connected to OpenCPN at {}", real_time_server_address);
-                stream
-            }
-            Err(e) => {
-                return Err(Box::new(e));
-            }
-        };
+        let listener = TcpListener::bind(listener_addr).await?;
+        let real_time_publishing_stream = TcpStream::connect(real_time_server_address).await?;
+        let history_publishing_stream = TcpStream::connect(history_server_address).await?;
+        let udp_sock = UdpSocket::bind(udp_receiver_addr).await?;
 
         Ok(TcpUdpServer {
-            listener,
+            strong_listener: listener,
+            weak_receiever: udp_sock,
             real_time_publishing_stream,
             history_publishing_stream,
-            udp_ip,
-            udp_port,
         })
     }
 
@@ -109,23 +82,22 @@ impl TcpUdpServer {
     }
 
     async fn handle_weak_senders(
-        udp_ip: IpAddr,
-        udp_port: u16,
+        udp_socket: UdpSocket,
         tx: UnboundedSender<Bytes>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let udp_socket = match UdpSocket::bind((udp_ip, udp_port)).await {
-            Ok(listener) => listener,
-            Err(e) => {
-                eprintln!("Failed to bind to {}:{}", udp_ip, udp_port);
-                return Err(Box::new(e));
-            }
-        };
         let mut buf = [0; 1024];
-
         loop {
-            //We send one message in one datagram.
-            let (len, _) = udp_socket.recv_from(&mut buf).await.unwrap();
-            tx.send(Bytes::copy_from_slice(&buf[..len]));
+            let (len, _) = match udp_socket.recv_from(&mut buf).await {
+                Ok(result) => result,
+                Err(e) => {
+                    eprintln!("Error receiving from UDP socket: {}", e);
+                    break;
+                }
+            };
+            if let Err(e) = tx.send(Bytes::copy_from_slice(&buf[..len])) {
+                eprintln!("Error sending message: {}", e);
+                break;
+            }
         }
         Ok(())
     }
@@ -139,25 +111,22 @@ impl TcpUdpServer {
                 Ok(msg) => msg,
                 Err(e) => {
                     eprintln!("Error converting data to string: {}", e);
-                    return;
+                    continue;
                 }
             };
 
-            println!("DUUUUPA");
-            println!("{}", msg);
-            
             let (ais_message, timestamp) = match split_message_on_TIMESTAMP(msg.to_string()) {
                 Ok(result) => result,
                 Err(e) => {
                     eprintln!("Error splitting message on TIMESTAMP: {}", e);
-                    return;
+                    continue;
                 }
             };
-            
+
             if let Err(e) = framed.send(ais_message + "\n").await {
                 eprintln!("Error sending message: {}", e);
             }
-        }   
+        }
     }
 
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
@@ -165,25 +134,27 @@ impl TcpUdpServer {
         let (weak_send, weak_recv) = mpsc::unbounded_channel::<Bytes>();
 
         let strong_receiver = tokio::spawn(async move {
-            let _ = TcpUdpServer::accept_and_handle_strong(strong_send, self.listener).await;
+            let _ = TcpUdpServer::accept_and_handle_strong(strong_send, self.strong_listener).await;
         });
 
         let weak_receiver = tokio::spawn(async move {
-            let _ = TcpUdpServer::handle_weak_senders(self.udp_ip, self.udp_port, weak_send).await;
+            let _ = TcpUdpServer::handle_weak_senders(self.weak_receiever, weak_send).await;
         });
 
         let strong_publisher = tokio::spawn(async move {
             let _ = TcpUdpServer::data_publisher(
                 FramedWrite::new(self.history_publishing_stream, LinesCodec::new()),
                 strong_recv,
-            ).await;
+            )
+            .await;
         });
 
         let weak_publisher = tokio::spawn(async move {
             let _ = TcpUdpServer::data_publisher(
                 FramedWrite::new(self.real_time_publishing_stream, LinesCodec::new()),
                 weak_recv,
-            ).await;
+            )
+            .await;
         });
 
         let _ = tokio::join!(

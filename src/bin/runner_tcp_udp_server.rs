@@ -1,5 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr};
 use log::debug;
+use std::net::{IpAddr, Ipv4Addr};
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
 use rust_AIS::client::TcpUdpClient;
@@ -27,58 +27,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         bornholm_to_swinoujscie_course,
         String::from("6969"),
     );
-		debug!("afeafaafa");
-		print!("afafafafafa");
+    debug!("afeafaafa");
+    print!("afafafafafa");
 
+    // let server = TcpUdpServer::new(
+    //     localhost_v4,
+    //     6969,
+    //     "0.0.0.0:2137",
+    //     "0.0.0.0:2136",
+    //     localhost_v4,
+    //     4200,
+    // )
+    // .await?;
     let server = TcpUdpServer::new(
-        localhost_v4,
-        6969,
+        "127.0.0.1:6969",
+        "127.0.0.1:4200",
         "0.0.0.0:2137",
         "0.0.0.0:2136",
-        localhost_v4,
-        4200,
     )
     .await?;
-		print!("dupa");
-		
+    print!("dupa");
+
     let handle_server = tokio::spawn(async move {
         let _ = server.run().await;
     });
-		debug!("afaefaefaes");
+    debug!("afaefaefaes");
 
+    // let handle_alefant = tokio::spawn(async move {
+    //     let localhost_v4 = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+    //     let mut alefant_crew = TcpUdpClient::new(
+    //         localhost_v4,
+    //         6969,
+    //         localhost_v4,
+    //         4210,
+    //         localhost_v4,
+    //         4200,
+    //         alefant,
+    //     )
+    //     .run()
+    //     .await;
+    // });
     let handle_alefant = tokio::spawn(async move {
-        let localhost_v4 = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
         let mut alefant_crew = TcpUdpClient::new(
-            localhost_v4,
-            6969,
-            localhost_v4,
-            4210,
-            localhost_v4,
-            4200,
+            "127.0.0.1:6969",
+            "127.0.0.1:4210",
+            "127.0.0.1:4200",
             alefant,
-        )
-        .run()
-        .await;
+        );
+        alefant_crew.run().await;
     });
-		debug!("dupa1");
+    debug!("dupa1");
 
     let handle_waternimf = tokio::spawn(async move {
-        let localhost_v4 = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
         let mut waternimf_crew = TcpUdpClient::new(
-            localhost_v4,
-            6969,
-            localhost_v4,
-            4211,
-            localhost_v4,
-            4200,
+            "127.0.0.1:6969",
+            "127.0.0.1:4211",
+            "127.0.0.1:4200",
             waternimf,
-        )
-        .run()
-        .await;
+        );
+        waternimf_crew.run().await;
     });
-		debug!("dupa14");
+    debug!("dupa14");
 
     tokio::join!(handle_server, handle_alefant, handle_waternimf);
-		// tokio::join!(handle_server);	
+    // tokio::join!(handle_server);
     Ok(())
 }
