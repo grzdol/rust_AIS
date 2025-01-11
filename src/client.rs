@@ -7,15 +7,16 @@ use futures::SinkExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::{self, channel};
+use tokio::sync::mpsc;
 use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
 use tokio_util::codec::{FramedWrite, LinesCodec};
-use tokio::sync::mpsc;
 
-use crate::broadcaster::Broadcaster;
+use crate::broadcaster::{self, Broadcaster};
+use crate::utils::string_to_msg_type;
 use crate::{
     boat_state::BoatState,
+    broadcaster::broadcaster_mockup::BroadcasterMockup,
     utils::{self, build_timestamped_ais_message, encode_ais_data, AISResponse, MsgType},
-    broadcaster::broadcaster_mockup::BroadcasterMockup
 };
 
 pub mod tcp_client;
@@ -26,18 +27,25 @@ pub struct TcpUdpClient<T: BoatState> {
     server_udp_addr: String,
     boat_state: T,
     send_channel: broadcast::Sender<MsgType>,
-    recv_channel: broadcast::Receiver<MsgType>
+    recv_channel: broadcast::Receiver<MsgType>,
 }
 
 impl<T: BoatState + 'static> TcpUdpClient<T> {
-    pub fn new(tcp_addr: &str, local_udp_addr: &str, server_udp_addr: &str, boat_state: T, send_channel: broadcast::Sender<MsgType>,recv_channel: broadcast::Receiver<MsgType>) -> Self {
+    pub fn new(
+        tcp_addr: &str,
+        local_udp_addr: &str,
+        server_udp_addr: &str,
+        boat_state: T,
+        send_channel: broadcast::Sender<MsgType>,
+        recv_channel: broadcast::Receiver<MsgType>,
+    ) -> Self {
         TcpUdpClient {
             tcp_addr: tcp_addr.to_string(),
             local_udp_addr: local_udp_addr.to_string(),
             server_udp_addr: server_udp_addr.to_string(),
             boat_state,
             send_channel,
-            recv_channel
+            recv_channel,
         }
     }
 
@@ -61,16 +69,20 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         local_udp_addr: &str,
         server_udp_addr: &str,
         mut boat_state_receiver: broadcast::Receiver<String>,
+        broadcaster_send_channel: UnboundedSender<MsgType>
     ) -> Result<(), Box<dyn std::error::Error>> {
         let local_udp_sock = UdpSocket::bind(local_udp_addr).await?;
         local_udp_sock.connect(server_udp_addr).await?;
         loop {
             match boat_state_receiver.recv().await {
                 Ok(msg) => {
-                    if let Err(e) = local_udp_sock.send(msg.as_bytes()).await {
+                    let msg_len = msg.len();
+                    let msg_converted = string_to_msg_type(msg);
+                    if let Err(e) = local_udp_sock.send(&msg_converted[..msg_len]).await {
                         eprintln!("Error sending message: {}", e);
                         break;
                     }
+                    broadcaster_send_channel.send(msg_converted);
                 }
                 Err(e) => {
                     eprintln!("Error receiving boat state: {}", e);
@@ -120,11 +132,18 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
             let _ = TcpUdpClient::<T>::create_and_run_strong_sender(&self.tcp_addr, strong_channel)
                 .await;
         });
+
+        //Those are channels through which workers in broadcaster talk.
+        //We also send with send channel msgs to broadcasters sender
+        let (send_channel, recv_channel) = mpsc::unbounded_channel();
+        let weak = send_channel.clone();
+
         let weak_sender = tokio::spawn(async move {
             let _ = TcpUdpClient::<T>::create_and_run_weak_sender(
                 &self.local_udp_addr,
                 &self.server_udp_addr,
                 weak_channel,
+                weak,
             )
             .await;
         });
@@ -135,12 +154,23 @@ impl<T: BoatState + 'static> TcpUdpClient<T> {
         let broadcaster_handle = tokio::spawn({
             async move {
                 let recv1 = self.send_channel.subscribe();
-                let (send_channel, recv_channel) = mpsc::unbounded_channel();
-                BroadcasterMockup::<MsgType>::run(recv1, self.send_channel, (), recv_channel, send_channel).await;
+                
+                BroadcasterMockup::<MsgType>::run(
+                    recv1,
+                    self.send_channel,
+                    (),
+                    recv_channel,
+                    send_channel,
+                )
+                .await;
             }
         });
- 
 
-        let _ = tokio::join!(strong_sender, weak_sender, boat_state_publisher, broadcaster_handle);
+        let _ = tokio::join!(
+            strong_sender,
+            weak_sender,
+            boat_state_publisher,
+            broadcaster_handle
+        );
     }
 }

@@ -13,10 +13,15 @@ where
     SenderArgs: Send + Sync + 'static,
     ReceiverArgs: Send + Sync + 'static,
     LoggerArgs: Send + Sync + 'static,
-    MessageType: Send + Copy + 'static
+    MessageType: Send + Copy + 'static,
 {
-    fn broadcast(arg: &mut SenderArgs, msg: MessageType) -> impl std::future::Future<Output = ()> + Send;
-    fn recv_from_broadcast(arg: &mut ReceiverArgs) -> impl std::future::Future<Output = MessageType> + Send;
+    fn broadcast(
+        arg: &mut SenderArgs,
+        msg: MessageType,
+    ) -> impl std::future::Future<Output = ()> + Send;
+    fn recv_from_broadcast(
+        arg: &mut ReceiverArgs,
+    ) -> impl std::future::Future<Output = MessageType> + Send;
     /**
      * This method helps avoiding cycles in broadcast. If broadcaster receives msg second time,
      * it checks if it has already broadcasted this msg and doesnt propagate. It can be achived by hashset
@@ -81,8 +86,7 @@ where
         log_arg: LoggerArgs,
         recv_channel: mpsc::UnboundedReceiver<MessageType>,
         send_channel: mpsc::UnboundedSender<MessageType>,
-    ) -> impl std::future::Future<Output = ()> + Send
-    {
+    ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             let receiver = tokio::spawn({
                 async move {

@@ -1,7 +1,7 @@
 use log::debug;
 use rust_AIS::utils::MsgType;
-use tokio::sync::broadcast;
 use std::net::{IpAddr, Ipv4Addr};
+use tokio::sync::broadcast;
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
 use rust_AIS::client::TcpUdpClient;
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "127.0.0.1:4200",
             alefant,
             cp_send,
-            cp_recv
+            cp_recv,
         );
         alefant_crew.run().await;
     });
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "127.0.0.1:4200",
             waternimf,
             send_broadcast,
-            recv_broadcast
+            recv_broadcast,
         );
         waternimf_crew.run().await;
     });

@@ -88,3 +88,13 @@ pub fn split_message_on_TIMESTAMP(
 pub fn build_timestamped_ais_message(data: AISResponse) -> String {
     data.ais_message + TIMESTAMP + &data.timestamp
 }
+
+
+
+pub fn string_to_msg_type(s: String) -> MsgType {
+    let mut msg_type = [0u8; 1024];
+    let bytes = s.as_bytes();
+    let len = bytes.len().min(1024);
+    msg_type[..len].copy_from_slice(&bytes[..len]);
+    msg_type
+}
