@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use tokio::sync::broadcast;
 
@@ -11,7 +11,7 @@ pub struct BroadcasterMockup<M> {
 
 impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup<M>
 where
-    M: Send + Copy + 'static,
+    M: Send + Copy + Debug + 'static,
 {
     fn broadcast(
         arg: &mut broadcast::Sender<M>,
@@ -33,7 +33,7 @@ where
     }
 
     fn log_received_from_broadcast(arg: &mut (), msg: M) {
-        println!("GOT MSG FROM BROADCAST");
+        println!("GOT MSG FROM BROADCAST {:?}", msg);
     }
 }
 
