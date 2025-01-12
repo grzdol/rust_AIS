@@ -11,7 +11,7 @@ use tokio::{
 
 use crate::{
     boat_state::BoatState,
-    broadcaster::{self, Broadcaster},
+    broadcaster::{self, Broadcaster, BroadcasterParams},
     utils::{
         build_timestamped_ais_message, encode_ais_data, string_to_msg_type, AISResponse, MsgType,
     },
@@ -21,18 +21,17 @@ pub mod sender;
 pub mod tcp_client;
 pub mod tcp_udp_client;
 
-pub trait Client<T, WeakSender, StrongSender, BroadcasterArgs>
+pub trait Client<T, WeakSender, StrongSender, B>
 where
     T: BoatState,
     WeakSender: Sender,
     StrongSender: Sender,
-    BroadcasterArgs: Send + 'static,
+    B: BroadcasterParams
 {
     fn run_broadcaster(
-        args: BroadcasterArgs,
+        &mut self,
         broadcaster_recv_channel: UnboundedReceiver<MsgType>,
     ) -> impl std::future::Future<Output = ()> + std::marker::Send;
-    fn get_broadcaster_args(&mut self) -> BroadcasterArgs;
 
     fn boat_state_handler(
         boat_state: T,
@@ -112,9 +111,8 @@ where
             Self::run_weak_sender(weak_sender, receiver_channel, broadcaster_send_channel).await;
         });
 
-        let args = self.get_broadcaster_args();
         let broadcaster_handle = tokio::spawn(async move {
-            Self::run_broadcaster(args, broadcaster_recv_channel).await;
+            self.run_broadcaster(broadcaster_recv_channel).await;
         });
 
         let _ = tokio::join!(strong_handle, weak_handle, broadcaster_handle);

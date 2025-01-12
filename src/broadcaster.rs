@@ -13,6 +13,18 @@ use std::hash::Hash;
  * it may be able to broadcast data through radio to other boats, thats why we need it.
  */
 
+/**
+ * Since it's pretty unclear how exactly Broadcaster could be implemented, theres a lot of
+ * generic Args
+ */
+pub trait BroadcasterParams {
+    type MessageType: Send + Copy + Eq + Hash + 'static;
+    type SenderArgs: Send + 'static;
+    type ReceiverArgs: Send + 'static;
+    type LoggerArgs: Send + 'static;
+    type B: Broadcaster<Self::MessageType, Self::SenderArgs, Self::ReceiverArgs, Self::LoggerArgs>;
+}
+
 pub trait Broadcaster<MessageType, SenderArgs, ReceiverArgs, LoggerArgs>
 where
     SenderArgs: Send + 'static,
@@ -33,6 +45,8 @@ where
      * to other clients or server.
      */
     fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MessageType);
+
+    fn set_recv_channel(&mut self, recv_channel: mpsc::UnboundedReceiver<MessageType>);
 
     /**
      * This method helps avoiding cycles in broadcast. If broadcaster receives msg second time,
@@ -84,6 +98,7 @@ where
     }
 
     fn run(
+        &mut self,
         receiver_args: ReceiverArgs,
         sender_args: SenderArgs,
         log_arg: LoggerArgs,

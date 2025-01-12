@@ -4,13 +4,15 @@ use std::{
     hash::Hash,
 };
 
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
 
 use crate::broadcaster::Broadcaster;
 
-pub struct BroadcasterMockup {}
+pub struct BroadcasterMockup<M> {
+    recv_channel: Option<tokio::sync::mpsc::UnboundedReceiver<M>>,
+}
 
-impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup
+impl<M> Broadcaster<M, broadcast::Sender<M>, broadcast::Receiver<M>, ()> for BroadcasterMockup<M>
 where
     M: Send + Copy + Debug + Eq + Hash + 'static,
 {
@@ -31,5 +33,15 @@ where
 
     fn log_received_from_broadcast(_: &mut (), msg: M) {
         println!("GOT MSG FROM BROADCAST {:?}", msg);
+    }
+
+    fn set_recv_channel(&mut self, recv_channel: tokio::sync::mpsc::UnboundedReceiver<M>) {
+        self.recv_channel = Some(recv_channel);
+    }
+}
+
+impl<M> BroadcasterMockup<M> {
+    pub fn new(recv_channel: Option<mpsc::UnboundedReceiver<M>>) -> Self {
+        Self { recv_channel }
     }
 }
