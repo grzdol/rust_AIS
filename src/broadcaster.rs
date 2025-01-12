@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use futures::channel::mpsc::UnboundedReceiver;
-use tokio::sync::mpsc;
+use tokio::{net::unix::pipe::Receiver, sync::mpsc};
 
 use crate::utils::MsgType;
 pub mod broadcaster_mockup;
@@ -17,15 +17,15 @@ use std::hash::Hash;
  * Since it's pretty unclear how exactly Broadcaster could be implemented, theres a lot of
  * generic Args
  */
-pub trait BroadcasterParams {
+pub trait BroadcasterParams: Send + 'static{
     type MessageType: Send + Copy + Eq + Hash + 'static;
-    type SenderArgs: Send + 'static;
+    type SenderArgs: Send + 'static; //Maybe its better to make them Copy
     type ReceiverArgs: Send + 'static;
     type LoggerArgs: Send + 'static;
     type B: Broadcaster<Self::MessageType, Self::SenderArgs, Self::ReceiverArgs, Self::LoggerArgs>;
 }
 
-pub trait Broadcaster<MessageType, SenderArgs, ReceiverArgs, LoggerArgs>
+pub trait Broadcaster<MessageType, SenderArgs, ReceiverArgs, LoggerArgs> : Send + 'static
 where
     SenderArgs: Send + 'static,
     ReceiverArgs: Send + 'static,
@@ -97,26 +97,28 @@ where
         }
     }
 
-    fn run(
+    fn get_args(
         &mut self,
-        receiver_args: ReceiverArgs,
-        sender_args: SenderArgs,
-        log_arg: LoggerArgs,
-        recv_channel: mpsc::UnboundedReceiver<MessageType>,
-        send_channel: mpsc::UnboundedSender<MessageType>,
-    ) -> impl std::future::Future<Output = ()> + Send {
+    ) -> (
+        ReceiverArgs,
+        SenderArgs,
+        LoggerArgs,
+        mpsc::UnboundedReceiver<MessageType>,
+        mpsc::UnboundedSender<MessageType>,
+    );
+
+    fn run(&mut self) -> impl std::future::Future<Output = ()> + Send {
+        let (receiver_args, sender_args, log_arg, recv_channel, send_channel) = self.get_args();
+
         async move {
-            let receiver = tokio::spawn({
-                async move {
-                    Self::run_receiver(receiver_args, log_arg, send_channel).await;
-                }
+            let receiver = tokio::spawn(async move {
+                Self::run_receiver(receiver_args, log_arg, send_channel).await;
             });
 
-            let sender = tokio::spawn({
-                async move {
-                    Self::run_sender(sender_args, recv_channel, HashSet::new()).await;
-                }
+            let sender = tokio::spawn(async move {
+                Self::run_sender(sender_args, recv_channel, std::collections::HashSet::new()).await;
             });
+
             let _ = tokio::join!(receiver, sender);
         }
     }

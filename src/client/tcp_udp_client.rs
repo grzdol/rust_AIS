@@ -26,18 +26,18 @@ use super::sender::tcp_sender::TcpSender;
 use super::sender::udp_sender::UdpSender;
 use super::Client;
 
-pub struct TcpUdpClient<BP: BroadcasterParams>
-{
-    broadcaster: BP::B,
+pub struct TcpUdpClient<BP: BroadcasterParams> {
+    broadcaster: Option<BP::B>,
 }
 
-impl<T: BoatState, BP: BroadcasterParams> Client<T, UdpSender, TcpSender> for TcpUdpClient<BP> {
-    fn run_broadcaster(
+impl<T: BoatState, BP: BroadcasterParams> Client<T, UdpSender, TcpSender, BP> for TcpUdpClient<BP> {
+    fn get_broadcaster(
         &mut self,
         broadcaster_recv_channel: mpsc::UnboundedReceiver<MsgType>,
-    ) -> impl std::future::Future<Output = ()> + std::marker::Send {
-        self.broadcaster.set_recv_channel(broadcaster_recv_channel);
-        self.broadcaster.run(receiver_args, sender_args, log_arg, recv_channel, send_channel)
+    ) -> BP::B{
+        let broadcaster = self.broadcaster.take().expect("No broadcaster. Panic");
+        broadcaster.set_recv_channel(broadcaster_recv_channel);
+        
     }
 }
 // pub struct TcpUdpClient<T: BoatState> {

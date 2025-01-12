@@ -21,17 +21,17 @@ pub mod sender;
 pub mod tcp_client;
 pub mod tcp_udp_client;
 
-pub trait Client<T, WeakSender, StrongSender, B>
+pub trait Client<T, WeakSender, StrongSender, BP>
 where
     T: BoatState,
     WeakSender: Sender,
     StrongSender: Sender,
-    B: BroadcasterParams
+    BP: BroadcasterParams,
 {
-    fn run_broadcaster(
+    fn get_broadcaster(
         &mut self,
         broadcaster_recv_channel: UnboundedReceiver<MsgType>,
-    ) -> impl std::future::Future<Output = ()> + std::marker::Send;
+    ) -> BP::B;
 
     fn boat_state_handler(
         boat_state: T,
@@ -111,8 +111,9 @@ where
             Self::run_weak_sender(weak_sender, receiver_channel, broadcaster_send_channel).await;
         });
 
-        let broadcaster_handle = tokio::spawn(async move {
-            self.run_broadcaster(broadcaster_recv_channel).await;
+        let broadcaster = self.get_broadcaster(broadcaster_recv_channel).await;
+        let broadcaster_handle = tokio::spawn(async move{
+            broadcaster.run().await;
         });
 
         let _ = tokio::join!(strong_handle, weak_handle, broadcaster_handle);
