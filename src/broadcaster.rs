@@ -17,45 +17,44 @@ use std::hash::Hash;
  * Since it's pretty unclear how exactly Broadcaster could be implemented, theres a lot of
  * generic Args
  */
-pub trait BroadcasterParams: Send + 'static{
-    type MessageType: Send + Copy + Eq + Hash + 'static;
+pub trait BroadcasterParams: Send + 'static {
     type SenderArgs: Send + 'static; //Maybe its better to make them Copy
     type ReceiverArgs: Send + 'static;
     type LoggerArgs: Send + 'static;
-    type B: Broadcaster<Self::MessageType, Self::SenderArgs, Self::ReceiverArgs, Self::LoggerArgs>;
+    type B: Broadcaster<Self::SenderArgs, Self::ReceiverArgs, Self::LoggerArgs>;
 }
 
-pub trait Broadcaster<MessageType, SenderArgs, ReceiverArgs, LoggerArgs> : Send + 'static
+pub trait Broadcaster<SenderArgs, ReceiverArgs, LoggerArgs>: Send + 'static
 where
     SenderArgs: Send + 'static,
     ReceiverArgs: Send + 'static,
     LoggerArgs: Send + 'static,
-    MessageType: Send + Copy + Eq + Hash + 'static,
 {
     fn broadcast(
         arg: &mut SenderArgs,
-        msg: MessageType,
+        msg: MsgType,
     ) -> impl std::future::Future<Output = ()> + Send;
     fn recv_from_broadcast(
         arg: &mut ReceiverArgs,
-    ) -> impl std::future::Future<Output = MessageType> + Send;
+    ) -> impl std::future::Future<Output = MsgType> + Send;
 
     /**
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
      */
-    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MessageType);
+    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType);
 
-    fn set_recv_channel(&mut self, recv_channel: mpsc::UnboundedReceiver<MessageType>);
+    fn set_recv_channel(
+        &mut self,
+        recv_channel: mpsc::UnboundedReceiver<MsgType>,
+        send_channel: mpsc::UnboundedSender<MsgType>,
+    );
 
     /**
      * This method helps avoiding cycles in broadcast. If broadcaster receives msg second time,
      * it checks if it has already broadcasted this msg and doesnt propagate.
      */
-    fn check_if_msg_already_passed(
-        msg: MessageType,
-        old_msg_set: &mut HashSet<MessageType>,
-    ) -> bool {
+    fn check_if_msg_already_passed(msg: MsgType, old_msg_set: &mut HashSet<MsgType>) -> bool {
         if old_msg_set.contains(&msg) {
             true
         } else {
@@ -66,8 +65,8 @@ where
     //worker for broadcasting data
     fn run_sender(
         mut arg: SenderArgs,
-        mut recv_channel: mpsc::UnboundedReceiver<MessageType>,
-        mut old_msg_set: HashSet<MessageType>,
+        mut recv_channel: mpsc::UnboundedReceiver<MsgType>,
+        mut old_msg_set: HashSet<MsgType>,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {
@@ -86,11 +85,11 @@ where
     fn run_receiver(
         mut arg: ReceiverArgs,
         mut log_arg: LoggerArgs,
-        send_channel: mpsc::UnboundedSender<MessageType>,
+        send_channel: mpsc::UnboundedSender<MsgType>,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {
-                let msg: MessageType = Self::recv_from_broadcast(&mut arg).await;
+                let msg: MsgType = Self::recv_from_broadcast(&mut arg).await;
                 Self::log_received_from_broadcast(&mut log_arg, msg);
                 let _ = send_channel.send(msg);
             }
@@ -103,8 +102,8 @@ where
         ReceiverArgs,
         SenderArgs,
         LoggerArgs,
-        mpsc::UnboundedReceiver<MessageType>,
-        mpsc::UnboundedSender<MessageType>,
+        mpsc::UnboundedReceiver<MsgType>,
+        mpsc::UnboundedSender<MsgType>,
     );
 
     fn run(&mut self) -> impl std::future::Future<Output = ()> + Send {

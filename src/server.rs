@@ -94,8 +94,20 @@ impl TcpUdpServer {
                     break;
                 }
             };
-            println!("AAAAAAAAAAAAAAAa {:?} {}", buf, len);
-            if let Err(e) = tx.send(Bytes::copy_from_slice(&buf[..len])) {
+            
+            let msg = match String::from_utf8(buf[..len].to_vec()) {
+                Ok(mut msg) => {
+                    msg
+                }
+                Err(e) => {
+                    eprintln!("Error converting bytes to string: {}", e);
+                    continue;
+                }
+            };
+
+            println!("WEAK SENDER GOT MSG {}", msg);
+    
+            if let Err(e) = tx.send(Bytes::from(msg)) {
                 eprintln!("Error sending message: {}", e);
                 break;
             }
@@ -119,12 +131,12 @@ impl TcpUdpServer {
             let (ais_message, timestamp) = match split_message_on_TIMESTAMP(msg.to_string()) {
                 Ok(result) => result,
                 Err(e) => {
-                    eprintln!("Error splitting message on TIMESTAMP: {}", e);
+                    eprintln!("Error splitting message on TIMESTAMP: {} {}", e, msg);
                     continue;
                 }
             };
 
-            if let Err(e) = framed.send(ais_message + "\n").await {
+            if let Err(e) = framed.send(ais_message).await {
                 eprintln!("Error sending message: {}", e);
             }
         }

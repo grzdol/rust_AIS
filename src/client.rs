@@ -23,7 +23,7 @@ pub mod tcp_udp_client;
 
 pub trait Client<T, WeakSender, StrongSender, BP>
 where
-    T: BoatState,
+    T: BoatState + 'static,
     WeakSender: Sender,
     StrongSender: Sender,
     BP: BroadcasterParams,
@@ -31,7 +31,10 @@ where
     fn get_broadcaster(
         &mut self,
         broadcaster_recv_channel: UnboundedReceiver<MsgType>,
+        broadcaster_send_channel: UnboundedSender<MsgType>,
     ) -> BP::B;
+    fn get_boat_state(&mut self) -> T;
+    fn run(&mut self) -> impl std::future::Future<Output = ()> + Send;
 
     fn boat_state_handler(
         boat_state: T,
@@ -40,7 +43,7 @@ where
         async move {
             loop {
                 //ToDo this should be async call on boat state
-                sleep(Duration::new(1, 0));
+                sleep(Duration::new(1, 0)).await;
                 let data = boat_state.get_ais_data();
                 let encoded_data = encode_ais_data(data).await.unwrap();
                 let timestamp = chrono::offset::Utc::now().to_rfc3339();
@@ -65,7 +68,7 @@ where
                     Ok(msg) => {
                         sender.send(msg).await;
                         //Weak sender is responsible for passing msgs to broadcaster
-                        broadcaster_send_channel.send(msg);
+                        let _ = broadcaster_send_channel.send(msg);
                     }
                     Err(e) => {
                         eprintln!("Error receiving boat state: {}", e);
@@ -95,27 +98,40 @@ where
         }
     }
 
-    async fn run(&mut self, weak_sender: WeakSender, strong_sender: StrongSender) {
-        let (sender_channel, receiver_channel): (
+    async fn run_impl(&mut self, weak_sender: WeakSender, strong_sender: StrongSender) {
+        let (boat_state_sender_channel, _boat_state_receiver_channel): (
             broadcast::Sender<MsgType>,
             broadcast::Receiver<MsgType>,
         ) = broadcast::channel(4096);
-        let recv1 = sender_channel.subscribe();
+        let recv1 = boat_state_sender_channel.subscribe();
+        let recv2 = boat_state_sender_channel.subscribe();
         let strong_handle = tokio::spawn(async move {
             Self::run_strong_sender(strong_sender, recv1).await;
         });
 
         let (broadcaster_send_channel, broadcaster_recv_channel) = mpsc::unbounded_channel();
 
+        let cp = broadcaster_send_channel.clone();
         let weak_handle = tokio::spawn(async move {
-            Self::run_weak_sender(weak_sender, receiver_channel, broadcaster_send_channel).await;
+            Self::run_weak_sender(weak_sender, recv2, cp).await;
         });
 
-        let broadcaster = self.get_broadcaster(broadcaster_recv_channel).await;
-        let broadcaster_handle = tokio::spawn(async move{
+        let mut broadcaster =
+            self.get_broadcaster(broadcaster_recv_channel, broadcaster_send_channel);
+        let broadcaster_handle = tokio::spawn(async move {
             broadcaster.run().await;
         });
 
-        let _ = tokio::join!(strong_handle, weak_handle, broadcaster_handle);
+        let boat_state = self.get_boat_state();
+        let boat_state_publisher = tokio::spawn(async move {
+            Self::boat_state_handler(boat_state, boat_state_sender_channel).await;
+        });
+
+        let _ = tokio::join!(
+            strong_handle,
+            weak_handle,
+            broadcaster_handle,
+            boat_state_publisher
+        );
     }
 }
