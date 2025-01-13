@@ -78,10 +78,12 @@ pub fn split_message_on_TIMESTAMP(
     if let Some(pos) = msg.find(TIMESTAMP) {
         let (before, after) = msg.split_at(pos);
         let timestamp_str = &after[TIMESTAMP.len()..].trim();
-        let timestamp = DateTime::parse_from_rfc3339(timestamp_str)?.with_timezone(&Utc);
-        Ok((before.to_string(), timestamp))
+        // ToDo. Have no clue why below crashes for weak receiver
+        // let timestamp = DateTime::parse_from_rfc3339(timestamp_str)?.with_timezone(&Utc);
+        Ok((before.to_string(), Utc::now()))
     } else {
         // println!("{}", msg);
+        println!("ERROR IN SPLITTING MSG {}", msg);
         Err(msg.into())
     }
 }

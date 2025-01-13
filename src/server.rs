@@ -106,9 +106,10 @@ impl TcpUdpServer {
             };
 
             println!("WEAK SENDER GOT MSG {}", msg);
+            let tmp = msg.clone();
     
             if let Err(e) = tx.send(Bytes::from(msg)) {
-                eprintln!("Error sending message: {}", e);
+                eprintln!("Error sending message: {} {}", e, tmp);
                 break;
             }
         }
