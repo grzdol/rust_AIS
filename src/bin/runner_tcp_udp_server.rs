@@ -6,10 +6,10 @@ use tokio::sync::broadcast;
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
 use rust_AIS::broadcaster::BroadcasterParams;
-use rust_AIS::client::tcp_udp_client::TcpUdpClient;
-use rust_AIS::client::Client;
 use rust_AIS::client::sender::tcp_sender::TcpSender;
 use rust_AIS::client::sender::udp_sender::UdpSender;
+use rust_AIS::client::tcp_udp_client::TcpUdpClient;
+use rust_AIS::client::Client;
 use rust_AIS::server::{self, TcpUdpServer};
 
 #[tokio::main]
@@ -59,13 +59,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let alefant_tcp_sender = TcpSender::new("127.0.0.1:6969").await;
     let handle_alefant = tokio::spawn(async move {
         let mut alefant_crew = TcpUdpClient::<BroadcasterMockupParams, BoatStateMockup>::new(
-            BroadcasterMockup::new(
-                cp_recv,
-                cp_send,
-            ),
+            BroadcasterMockup::new(cp_recv, cp_send),
             alefant_udp_sender,
             alefant_tcp_sender,
-            alefant
+            alefant,
         );
         alefant_crew.run().await;
     });
@@ -75,13 +72,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let waternimf_tcp_sender = TcpSender::new("127.0.0.1:6969").await;
     let handle_waternimf = tokio::spawn(async move {
         let mut waternimf_crew = TcpUdpClient::<BroadcasterMockupParams, BoatStateMockup>::new(
-            BroadcasterMockup::new(
-                recv_broadcast,
-                send_broadcast,
-            ),
+            BroadcasterMockup::new(recv_broadcast, send_broadcast),
             waternimf_udp_sender,
             waternimf_tcp_sender,
-            waternimf
+            waternimf,
         );
         waternimf_crew.run().await;
     });

@@ -1,6 +1,8 @@
 use crate::utils::MsgType;
 
+pub mod tcp_raw_nmea_sender;
 pub mod tcp_sender;
+pub mod udp_raw_nmea_sender;
 pub mod udp_sender;
 
 pub trait Sender: Send + 'static {

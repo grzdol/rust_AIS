@@ -10,8 +10,8 @@ use tokio::{net::TcpStream, time};
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
-static TIMESTAMP: &str = "TIMESTAMP";
-static MSGTYPESIZE: usize = 256;
+pub static TIMESTAMP: &str = "TIMESTAMP";
+pub static MSGTYPESIZE: usize = 256;
 type Error = Box<dyn std::error::Error>;
 pub type MsgType = [u8; 256];
 
