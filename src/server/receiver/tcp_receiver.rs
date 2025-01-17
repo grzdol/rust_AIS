@@ -7,8 +7,17 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::StreamExt;
 use tokio_util::codec::{FramedRead, FramedWrite, LinesCodec};
 
+use super::ReceiverT;
+
 pub struct TcpReceiver {
     listener: TcpListener,
+}
+
+impl TcpReceiver {
+    pub async fn new(listener_addr: &str) -> Self {
+        let listener = TcpListener::bind(listener_addr).await.expect("Failed to bind to address");
+        Self { listener }
+    }
 }
 
 impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
@@ -45,4 +54,10 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
             }
         }
     }
+}
+
+impl ReceiverT for TcpReceiver {
+    type AcceptArgs = FramedRead<TcpStream, LinesCodec>;
+
+    type Receiver = TcpReceiver;
 }

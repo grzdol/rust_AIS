@@ -4,6 +4,11 @@ use crate::utils::MsgType;
 pub mod tcp_receiver;
 pub mod udp_receiver;
 
+pub trait ReceiverT: Send + 'static {
+    type AcceptArgs: Send + Sync + 'static;
+    type Receiver: Receiver<Self::AcceptArgs>;
+}
+
 pub trait Receiver<AcceptArgs: Send + Sync + 'static>: Send + 'static {
     fn accept_client(&mut self) -> impl std::future::Future<Output = (AcceptArgs)> + Send;
     fn recv(args: AcceptArgs) -> impl std::future::Future<Output = (MsgType)> + Send;

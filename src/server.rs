@@ -18,19 +18,17 @@ use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 use crate::client::sender::Sender;
 use crate::utils::{get_next_framed_ais_message, split_message_on_TIMESTAMP, MsgType};
 
-use receiver::Receiver;
+use receiver::{Receiver, ReceiverT};
 
-pub trait Server<WeakReceiver, StrongReceiver, StrongPublisher, WeakPublisher, T, V>
+pub trait Server<WeakReceiver, StrongReceiver, StrongPublisher, WeakPublisher>
 where
-    WeakReceiver: Receiver<T>,
-    StrongReceiver: Receiver<V>,
-    T: Send + Sync + 'static,
-    V: Send + Sync + 'static,
+    WeakReceiver: ReceiverT,
+    StrongReceiver: ReceiverT,
     StrongPublisher: Sender,
     WeakPublisher: Sender,
 {
-    fn get_strong_receiver(&mut self) -> StrongReceiver;
-    fn get_weak_receiver(&mut self) -> WeakReceiver;
+    fn get_strong_receiver(&mut self) -> StrongReceiver::Receiver;
+    fn get_weak_receiver(&mut self) -> WeakReceiver::Receiver;
     fn get_strong_publisher(&mut self) -> StrongPublisher;
     fn get_weak_publisher(&mut self) -> WeakPublisher;
 

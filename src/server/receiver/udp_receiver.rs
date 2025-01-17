@@ -3,11 +3,21 @@ use tokio::net::UdpSocket;
 
 use crate::utils::{MsgType, MSGTYPESIZE};
 
-use super::Receiver;
+use super::{Receiver, ReceiverT};
 
 pub struct UdpReceiver {
     finish_accepting: bool,
     socket: Option<UdpSocket>,
+}
+
+impl UdpReceiver {
+    pub async fn new(finish_accepting: bool, udp_receiver_addr: &str) -> Self {
+        let udp_sock = match UdpSocket::bind(udp_receiver_addr).await {
+            Ok(socket) => Some(socket),
+            Err(_) => None,
+        };
+        Self { finish_accepting, socket: udp_sock }
+    }
 }
 
 impl Receiver<UdpSocket> for UdpReceiver {
@@ -38,4 +48,10 @@ impl Receiver<UdpSocket> for UdpReceiver {
     fn finish_accepting(&self) -> bool {
         self.finish_accepting
     }
+}
+
+impl ReceiverT for UdpReceiver{
+    type AcceptArgs = UdpSocket;
+
+    type Receiver = UdpReceiver;
 }

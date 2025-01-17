@@ -8,6 +8,13 @@ pub struct UdpRawNmeaSender {
     socket: UdpSocket,
 }
 
+impl UdpRawNmeaSender {
+    pub async fn new(server_addr: &str) -> Self {
+        let socket = UdpSocket::bind(server_addr).await.expect("Failed to bind socket");
+        Self { socket }
+    }
+}
+
 impl Sender for UdpRawNmeaSender {
     fn send(&mut self, msg: crate::utils::MsgType) -> impl std::future::Future<Output = ()> + Send {
         async move {
