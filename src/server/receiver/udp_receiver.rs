@@ -16,7 +16,10 @@ impl UdpReceiver {
             Ok(socket) => Some(socket),
             Err(_) => None,
         };
-        Self { finish_accepting: false, socket: udp_sock }
+        Self {
+            finish_accepting: false,
+            socket: udp_sock,
+        }
     }
 }
 
@@ -50,7 +53,7 @@ impl Receiver<UdpSocket> for UdpReceiver {
     }
 }
 
-impl ReceiverT for UdpReceiver{
+impl ReceiverT for UdpReceiver {
     type AcceptArgs = UdpSocket;
 
     type Receiver = UdpReceiver;

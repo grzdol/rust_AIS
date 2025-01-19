@@ -15,7 +15,9 @@ pub struct TcpReceiver {
 
 impl TcpReceiver {
     pub async fn new(listener_addr: &str) -> Self {
-        let listener = TcpListener::bind(listener_addr).await.expect("Failed to bind to address");
+        let listener = TcpListener::bind(listener_addr)
+            .await
+            .expect("Failed to bind to address");
         Self { listener }
     }
 }
@@ -44,11 +46,10 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
     ) -> impl std::future::Future<Output = MsgType> + Send {
         async move {
             match framed.next().await {
-                
-                Some(Ok(line)) =>{
+                Some(Ok(line)) => {
                     print!("{:?}", line);
                     string_to_msg_type(line)
-                },
+                }
                 Some(Err(e)) => {
                     panic!("Error receiving line: {}", e);
                 }

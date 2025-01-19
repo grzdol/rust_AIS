@@ -7,7 +7,7 @@ use crate::utils::{split_message_on_TIMESTAMP, string_to_msg_type};
 use super::Sender;
 
 pub struct TcpRawNmeaSender {
-  framed: FramedWrite<TcpStream, LinesCodec>,
+    framed: FramedWrite<TcpStream, LinesCodec>,
 }
 
 impl TcpRawNmeaSender {
@@ -20,17 +20,17 @@ impl TcpRawNmeaSender {
 
 impl Sender for TcpRawNmeaSender {
     fn send(&mut self, msg: crate::utils::MsgType) -> impl std::future::Future<Output = ()> + Send {
-      async move {
-        let (ais_message, timestamp) =
-            match split_message_on_TIMESTAMP(String::from_utf8(msg.to_vec()).unwrap()) {
-                Ok(result) => result,
-                Err(e) => {
-                    eprintln!("Error splitting message on TIMESTAMP: {}", e);
-                    return;
-                }
-            };
+        async move {
+            let (ais_message, timestamp) =
+                match split_message_on_TIMESTAMP(String::from_utf8(msg.to_vec()).unwrap()) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        eprintln!("Error splitting message on TIMESTAMP: {}", e);
+                        return;
+                    }
+                };
 
-        let _ = self.framed.send(ais_message).await ;
-    }
+            let _ = self.framed.send(ais_message).await;
+        }
     }
 }

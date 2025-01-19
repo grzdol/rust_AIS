@@ -10,7 +10,9 @@ pub struct UdpRawNmeaSender {
 
 impl UdpRawNmeaSender {
     pub async fn new(server_addr: &str) -> Self {
-        let socket = UdpSocket::bind(server_addr).await.expect("Failed to bind socket");
+        let socket = UdpSocket::bind(server_addr)
+            .await
+            .expect("Failed to bind socket");
         Self { socket }
     }
 }

@@ -28,7 +28,6 @@ pub trait Receiver<AcceptArgs: Send + Sync + 'static>: Send + 'static {
                         let msg = Self::recv(&mut args).await;
                         let _ = c.send(msg);
                     }
-                    
                 });
                 handles.push(handle);
             }

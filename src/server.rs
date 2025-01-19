@@ -40,7 +40,6 @@ where
             while let Some(msg) = receiver.recv().await {
                 sender.send(msg).await;
             }
-            println!("SRAKAAA");
         }
     }
 
