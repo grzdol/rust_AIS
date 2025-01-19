@@ -27,10 +27,10 @@ where
     StrongPublisher: Sender,
     WeakPublisher: Sender,
 {
-    fn get_strong_receiver(&mut self) -> StrongReceiver::Receiver;
-    fn get_weak_receiver(&mut self) -> WeakReceiver::Receiver;
-    fn get_strong_publisher(&mut self) -> StrongPublisher;
-    fn get_weak_publisher(&mut self) -> WeakPublisher;
+    async fn get_strong_receiver(&mut self) -> StrongReceiver::Receiver;
+    async fn get_weak_receiver(&mut self) -> WeakReceiver::Receiver;
+    async fn get_strong_publisher(&mut self) -> StrongPublisher;
+    async fn get_weak_publisher(&mut self) -> WeakPublisher;
 
     fn data_publisher<S: Sender>(
         mut sender: S,
@@ -40,6 +40,7 @@ where
             while let Some(msg) = receiver.recv().await {
                 sender.send(msg).await;
             }
+            println!("SRAKAAA");
         }
     }
 
@@ -47,10 +48,10 @@ where
         let (strong_send, strong_recv) = mpsc::unbounded_channel::<MsgType>();
         let (weak_send, weak_recv) = mpsc::unbounded_channel::<MsgType>();
 
-        let mut strong_receiver = self.get_strong_receiver();
-        let mut weak_receiver = self.get_weak_receiver();
-        let strong_publisher = self.get_strong_publisher();
-        let weak_publisher = self.get_weak_publisher();
+        let mut strong_receiver = self.get_strong_receiver().await;
+        let mut weak_receiver = self.get_weak_receiver().await;
+        let strong_publisher = self.get_strong_publisher().await;
+        let weak_publisher = self.get_weak_publisher().await;
 
         let strong_receiver_handle = tokio::spawn(async move {
             let _ = strong_receiver.run(strong_send).await;

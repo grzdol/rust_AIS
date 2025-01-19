@@ -11,7 +11,7 @@ pub trait ReceiverT: Send + 'static {
 
 pub trait Receiver<AcceptArgs: Send + Sync + 'static>: Send + 'static {
     fn accept_client(&mut self) -> impl std::future::Future<Output = (AcceptArgs)> + Send;
-    fn recv(args: AcceptArgs) -> impl std::future::Future<Output = (MsgType)> + Send;
+    fn recv(args: &mut AcceptArgs) -> impl std::future::Future<Output = (MsgType)> + Send;
     fn finish_accepting(&self) -> bool;
 
     fn run(
@@ -24,8 +24,11 @@ pub trait Receiver<AcceptArgs: Send + Sync + 'static>: Send + 'static {
                 let mut args = self.accept_client().await;
                 let c = channel.clone();
                 let handle = tokio::spawn(async move {
-                    let msg = Self::recv(args).await;
-                    c.send(msg);
+                    loop {
+                        let msg = Self::recv(&mut args).await;
+                        let _ = c.send(msg);
+                    }
+                    
                 });
                 handles.push(handle);
             }

@@ -11,12 +11,12 @@ pub struct UdpReceiver {
 }
 
 impl UdpReceiver {
-    pub async fn new(finish_accepting: bool, udp_receiver_addr: &str) -> Self {
+    pub async fn new(udp_receiver_addr: &str) -> Self {
         let udp_sock = match UdpSocket::bind(udp_receiver_addr).await {
             Ok(socket) => Some(socket),
             Err(_) => None,
         };
-        Self { finish_accepting, socket: udp_sock }
+        Self { finish_accepting: false, socket: udp_sock }
     }
 }
 
@@ -28,7 +28,7 @@ impl Receiver<UdpSocket> for UdpReceiver {
         }
     }
 
-    fn recv(socket: UdpSocket) -> impl std::future::Future<Output = MsgType> + Send {
+    fn recv(socket: &mut UdpSocket) -> impl std::future::Future<Output = MsgType> + Send {
         async move {
             let mut buf = [0u8; MSGTYPESIZE + 1];
             let (len, _) = match socket.recv_from(&mut buf).await {

@@ -30,7 +30,7 @@ impl Sender for TcpRawNmeaSender {
                 }
             };
 
-        let _ = self.framed.send(ais_message);
+        let _ = self.framed.send(ais_message).await ;
     }
     }
 }

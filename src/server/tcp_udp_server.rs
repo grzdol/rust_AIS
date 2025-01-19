@@ -13,6 +13,8 @@ use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
 use crate::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
+use crate::client::sender::tcp_sender::TcpSender;
+use crate::client::sender::udp_raw_nmea_sender::UdpRawNmeaSender;
 use crate::utils::{get_next_framed_ais_message, split_message_on_TIMESTAMP};
 
 use super::receiver::tcp_receiver::TcpReceiver;
@@ -42,21 +44,20 @@ impl<'a> TcpUdpServer<'a> {
     }
 }
 impl<'a> Server<UdpReceiver, TcpReceiver, TcpRawNmeaSender, TcpRawNmeaSender> for TcpUdpServer<'a> {
-    fn get_strong_receiver(&mut self) -> TcpReceiver {
-        // TcpReceiver::new(self.history_server_address).await
-        todo!()
+    async fn get_strong_receiver(&mut self) -> TcpReceiver {
+        TcpReceiver::new(self.listener_addr).await
     }
 
-    fn get_weak_receiver(&mut self) -> UdpReceiver {
-        todo!()
+    async fn get_weak_receiver(&mut self) -> UdpReceiver {
+        UdpReceiver::new(self.udp_receiver_addr).await
     }
 
-    fn get_strong_publisher(&mut self) -> TcpRawNmeaSender {
-        todo!()
+    async fn get_strong_publisher(&mut self) -> TcpRawNmeaSender {
+        TcpRawNmeaSender::new(self.history_server_address).await
     }
 
-    fn get_weak_publisher(&mut self) -> TcpRawNmeaSender {
-        todo!()
+    async fn get_weak_publisher(&mut self) -> TcpRawNmeaSender {
+        TcpRawNmeaSender::new(self.real_time_server_address).await
     }
 }
 
