@@ -9,11 +9,9 @@
  *
  *
  */
-use crate::utils::AISData;
+use crate::utils::{AISData, MsgType};
 pub mod boat_state_mockup;
+pub mod boat_state_udp;
 pub trait BoatState: Send {
-    fn get_ais_data(&self) -> AISData;
-    fn get_current_position(&self) -> (f32, f32);
-    fn get_current_course(&self) -> f32;
-    fn get_mmsi(&self) -> String;
+    fn get_ais_data(&self) -> impl std::future::Future<Output = MsgType> + std::marker::Send;
 }

@@ -43,10 +43,8 @@ where
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             loop {
-                //ToDo this should be async call on boat state
-                sleep(Duration::new(1, 0)).await;
-                let data = boat_state.get_ais_data();
-                let encoded_data = encode_ais_data(data).await.unwrap();
+                let data = boat_state.get_ais_data().await;
+                let encoded_data = String::from_utf8_lossy(&data).to_string();
                 let timestamp = chrono::offset::Utc::now().to_rfc3339();
                 let response = AISResponse {
                     timestamp,

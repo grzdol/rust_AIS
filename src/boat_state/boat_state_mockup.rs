@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
 use crate::boat_state::BoatState;
-use crate::utils::AISData;
+use crate::utils::{encode_ais_data, string_to_msg_type, AISData, MsgType};
 /**
  * It's just a boat of fixed course and speed
  */
@@ -15,9 +15,25 @@ pub struct BoatStateMockup {
 }
 
 impl BoatState for BoatStateMockup {
-    fn get_ais_data(&self) -> AISData {
+    async fn get_ais_data(&self) -> MsgType {
         let lat_lon = self.get_current_position();
-        AISData::new(self.course, lat_lon.0, lat_lon.1, self.mmsi.clone(), 1)
+        let data = AISData::new(self.course, lat_lon.0, lat_lon.1, self.mmsi.clone(), 1);
+        string_to_msg_type(encode_ais_data(data).await.unwrap())
+    }
+
+    
+}
+
+impl BoatStateMockup {
+    pub fn new(lat: f32, lon: f32, speed: f32, course: f32, mmsi: String) -> Self {
+        BoatStateMockup {
+            init_lat: lat,
+            init_lon: lon,
+            course,
+            speed,
+            mmsi,
+            init_timestamp: SystemTime::now(),
+        }
     }
 
     fn get_current_position(&self) -> (f32, f32) {
@@ -38,18 +54,5 @@ impl BoatState for BoatStateMockup {
 
     fn get_mmsi(&self) -> String {
         self.mmsi.clone() //mmsi is not a long string so it's not expensive clone
-    }
-}
-
-impl BoatStateMockup {
-    pub fn new(lat: f32, lon: f32, speed: f32, course: f32, mmsi: String) -> Self {
-        BoatStateMockup {
-            init_lat: lat,
-            init_lon: lon,
-            course,
-            speed,
-            mmsi,
-            init_timestamp: SystemTime::now(),
-        }
     }
 }

@@ -38,11 +38,9 @@ impl<T: BoatState> TcpClient<T> {
     pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
             //send AIS data every second
-            let data = self.boat_state.get_ais_data();
-            let encoded_ais_data = utils::encode_ais_data(data).await?;
-            self.stream.write_all(encoded_ais_data.as_bytes()).await?;
+            let data = self.boat_state.get_ais_data().await;
+            self.stream.write_all(&data).await?;
             sleep(std::time::Duration::from_secs(1));
-            println!("sent data {}", self.boat_state.get_mmsi());
         }
     }
 }
