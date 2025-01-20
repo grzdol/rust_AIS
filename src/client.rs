@@ -20,6 +20,7 @@ use crate::{
 pub mod sender;
 pub mod tcp_client;
 pub mod tcp_udp_client;
+pub mod broken_client;
 
 pub trait Client<T, WeakSender, StrongSender, BP>
 where

@@ -5,6 +5,7 @@ use tokio::{net::unix::pipe::Receiver, sync::mpsc};
 
 use crate::utils::MsgType;
 pub mod broadcaster_mockup;
+pub mod udp_broadcaster;
 use std::hash::Hash;
 
 /**
@@ -42,7 +43,7 @@ where
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
      */
-    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType);
+    async fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType);
 
     fn set_recv_channel(
         &mut self,

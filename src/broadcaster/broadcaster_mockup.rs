@@ -61,7 +61,7 @@ impl Broadcaster<broadcast::Sender<MsgType>, broadcast::Receiver<MsgType>, ()>
         async move { arg.recv().await.unwrap() }
     }
 
-    fn log_received_from_broadcast(_: &mut (), msg: MsgType) {
+    async fn log_received_from_broadcast(_: &mut (), msg: MsgType) {
         println!("GOT MSG FROM BROADCAST");
     }
 
