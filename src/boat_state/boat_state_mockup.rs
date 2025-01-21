@@ -20,8 +20,6 @@ impl BoatState for BoatStateMockup {
         let data = AISData::new(self.course, lat_lon.0, lat_lon.1, self.mmsi.clone(), 1);
         string_to_msg_type(encode_ais_data(data).await.unwrap())
     }
-
-    
 }
 
 impl BoatStateMockup {

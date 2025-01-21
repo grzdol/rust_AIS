@@ -17,10 +17,10 @@ use crate::{
     },
 };
 
+pub mod broken_client;
 pub mod sender;
 pub mod tcp_client;
 pub mod tcp_udp_client;
-pub mod broken_client;
 
 pub trait Client<T, WeakSender, StrongSender, BP>
 where
@@ -44,12 +44,15 @@ where
         async move {
             loop {
                 let data = boat_state.get_ais_data().await;
-                let encoded_data = String::from_utf8_lossy(&data).to_string();
+                let trimmed_msg = String::from_utf8_lossy(&data)
+                .trim_end_matches(|c:char| c == '\0' || c.is_whitespace())
+                .to_string();
                 let timestamp = chrono::offset::Utc::now().to_rfc3339();
                 let response = AISResponse {
                     timestamp,
-                    ais_message: encoded_data,
+                    ais_message: trimmed_msg, // Use trim_end to remove trailing newline
                 };
+                
                 let msg = build_timestamped_ais_message(response);
                 let _ = boat_state_channel.send(string_to_msg_type(msg));
             }

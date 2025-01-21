@@ -1,11 +1,27 @@
-use std::collections::HashSet;
-use tokio::net::UdpSocket;
-use tokio::sync::{broadcast, mpsc};
 use crate::broadcaster::Broadcaster;
 use crate::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
 use crate::client::sender::Sender;
 use crate::server::receiver;
 use crate::utils::{MsgType, MSGTYPESIZE};
+use std::collections::HashSet;
+use tokio::net::UdpSocket;
+use tokio::sync::{broadcast, mpsc};
+
+use super::BroadcasterParams;
+
+pub struct UdpBroadcasterParams{
+
+}
+
+impl BroadcasterParams for UdpBroadcasterParams {
+    type SenderArgs = (UdpSocket, &'static str);
+
+    type ReceiverArgs = UdpSocket;
+
+    type LoggerArgs = TcpRawNmeaSender;
+
+    type B = UdpBroadcaster;
+}
 
 pub struct UdpBroadcaster {
     sender_socket: Option<UdpSocket>,
@@ -13,7 +29,7 @@ pub struct UdpBroadcaster {
     log_arg: Option<TcpRawNmeaSender>,
     local_recv_channel: Option<mpsc::UnboundedReceiver<MsgType>>,
     local_send_channel: Option<mpsc::UnboundedSender<MsgType>>,
-    broadcast_address: &'static str
+    broadcast_address: &'static str,
 }
 
 impl UdpBroadcaster {
@@ -22,20 +38,18 @@ impl UdpBroadcaster {
         local_sender_address: &str,
         broadcast_address: &'static str,
         log_arg: TcpRawNmeaSender,
-        local_recv_channel: mpsc::UnboundedReceiver<MsgType>,
-        local_send_channel: mpsc::UnboundedSender<MsgType>,
     ) -> Self {
-      let sender_socket = UdpSocket::bind(local_sender_address).await.unwrap();
-      let _ = sender_socket.set_broadcast(true);
-      let receiver_socket = UdpSocket::bind(local_recevier_address).await.unwrap();
-      let _ = receiver_socket.set_broadcast(true);
+        let sender_socket = UdpSocket::bind(local_sender_address).await.unwrap();
+        let _ = sender_socket.set_broadcast(true);
+        let receiver_socket = UdpSocket::bind(local_recevier_address).await.unwrap();
+        let _ = receiver_socket.set_broadcast(true);
         Self {
             sender_socket: Some(sender_socket),
             receiver_socket: Some(receiver_socket),
             log_arg: Some(log_arg),
-            local_recv_channel: Some(local_recv_channel),
-            local_send_channel: Some(local_send_channel),
-            broadcast_address
+            local_recv_channel: None,
+            local_send_channel: None,
+            broadcast_address,
         }
     }
 }
@@ -53,20 +67,20 @@ impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for Udp
     fn recv_from_broadcast(
         socket: &mut UdpSocket,
     ) -> impl std::future::Future<Output = MsgType> + Send {
-      async move {
-        let mut buf = [0u8; MSGTYPESIZE + 1];
-        let (len, _) = match socket.recv_from(&mut buf).await {
-            Ok(result) => result,
-            Err(e) => {
-                panic!("Error receiving from UDP socket: {}", e);
-            }
-        };
+        async move {
+            let mut buf = [0u8; MSGTYPESIZE + 1];
+            let (len, _) = match socket.recv_from(&mut buf).await {
+                Ok(result) => result,
+                Err(e) => {
+                    panic!("Error receiving from UDP socket: {}", e);
+                }
+            };
 
-        let mut msg = [0u8; MSGTYPESIZE];
-        let copy_len = MSGTYPESIZE.min(len);
-        msg[..copy_len].copy_from_slice(&buf[..copy_len]);
-        msg
-    }
+            let mut msg = [0u8; MSGTYPESIZE];
+            let copy_len = MSGTYPESIZE.min(len);
+            msg[..copy_len].copy_from_slice(&buf[..copy_len]);
+            msg
+        }
     }
 
     async fn log_received_from_broadcast(sender: &mut TcpRawNmeaSender, msg: MsgType) {
@@ -92,11 +106,22 @@ impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for Udp
         mpsc::UnboundedSender<MsgType>,
     ) {
         (
-            self.receiver_socket.take().expect("No receiver_socket in UdpBroadcaster"),
-            (self.sender_socket.take().expect("No sender_socket in UdpBroadcaster"), self.broadcast_address),
+            self.receiver_socket
+                .take()
+                .expect("No receiver_socket in UdpBroadcaster"),
+            (
+                self.sender_socket
+                    .take()
+                    .expect("No sender_socket in UdpBroadcaster"),
+                self.broadcast_address,
+            ),
             self.log_arg.take().expect("No log_arg in UdpBroadcaster"),
-            self.local_recv_channel.take().expect("No local_recv_channel in UdpBroadcaster"),
-            self.local_send_channel.take().expect("No local_send_channel in UdpBroadcaster"),
+            self.local_recv_channel
+                .take()
+                .expect("No local_recv_channel in UdpBroadcaster"),
+            self.local_send_channel
+                .take()
+                .expect("No local_send_channel in UdpBroadcaster"),
         )
     }
 }

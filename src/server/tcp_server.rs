@@ -59,7 +59,6 @@ impl TcpServer {
             // ToDo, we shouldn't copy here
             let message = Bytes::from(buf[..n].to_vec());
             tx.send(message)?;
-            println!("dupersko");
         }
         Ok(())
     }

@@ -47,7 +47,6 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
         async move {
             match framed.next().await {
                 Some(Ok(line)) => {
-                    print!("{:?}", line);
                     string_to_msg_type(line)
                 }
                 Some(Err(e)) => {

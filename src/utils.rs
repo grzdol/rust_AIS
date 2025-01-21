@@ -11,9 +11,9 @@ use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
 
 pub static TIMESTAMP: &str = "TIMESTAMP";
-pub static MSGTYPESIZE: usize = 256;
+pub static MSGTYPESIZE: usize = 1024;
 type Error = Box<dyn std::error::Error>;
-pub type MsgType = [u8; 256];
+pub type MsgType = [u8; MSGTYPESIZE];
 
 #[derive(Serialize)]
 pub struct AISData {
@@ -89,7 +89,7 @@ pub fn split_message_on_TIMESTAMP(
 }
 
 pub fn build_timestamped_ais_message(data: AISResponse) -> String {
-    data.ais_message + TIMESTAMP + &data.timestamp
+    data.ais_message.trim().to_owned() + TIMESTAMP + &data.timestamp
 }
 
 pub fn string_to_msg_type(s: String) -> MsgType {
