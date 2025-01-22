@@ -12,7 +12,10 @@ pub struct BrokenClient<BP: BroadcasterParams, T: BoatState> {
 
 impl<BP: BroadcasterParams, T: BoatState> BrokenClient<BP, T> {
     pub fn new(broadcaster: Option<BP::B>, boat_state: Option<T>) -> Self {
-        Self { broadcaster, boat_state }
+        Self {
+            broadcaster,
+            boat_state,
+        }
     }
 }
 

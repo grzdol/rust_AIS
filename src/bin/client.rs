@@ -18,9 +18,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let multicast_addr = Ipv4Addr::new(192, 168, 0, 228);
     let client_multicast_addr = Ipv4Addr::new(224, 0, 0, 2);
     let multicast_port = 6789;
-    let local_sender_ip = Ipv4Addr::new(127,0,0,3);
+    let local_sender_ip = Ipv4Addr::new(127, 0, 0, 3);
     let local_sender_port = 5001;
-    let sender = UdpSender::new("0.0.0.0:23456","127.0.0.1:4200").await;
+    let sender = UdpSender::new("0.0.0.0:23456", "127.0.0.1:4200").await;
     let broadcaster = UdpBroadcaster::new(
         client_multicast_addr,
         multicast_port,
@@ -28,9 +28,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         local_sender_port,
         multicast_addr,
         multicast_port,
-        sender
+        sender,
     )
-    .await.unwrap();
+    .await
+    .unwrap();
 
     let mut client = TcpUdpClient::<UdpBroadcasterParams, BoatStateUdp>::new(
         broadcaster,

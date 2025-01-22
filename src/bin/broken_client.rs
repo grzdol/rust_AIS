@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let multicast_addr = Ipv4Addr::new(196, 168, 0, 228);
     let client_multicast_addr = Ipv4Addr::new(224, 0, 0, 3);
     let multicast_port = 6789;
-    let local_sender_ip = Ipv4Addr::new(127,0,0,1 );
+    let local_sender_ip = Ipv4Addr::new(127, 0, 0, 1);
     let local_sender_port = 6001;
     let broadcaster = UdpBroadcaster::new(
         client_multicast_addr,
@@ -28,14 +28,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         local_sender_port,
         multicast_addr,
         multicast_port,
-        UdpSender::new("0.0.0.0:12345","127.0.0.1:4200").await,
+        UdpSender::new("0.0.0.0:12345", "127.0.0.1:4200").await,
     )
-    .await.unwrap();
-    let mut client = BrokenClient::<UdpBroadcasterParams, BoatStateUdp>::new(Some(broadcaster), Some(boat_state));
+    .await
+    .unwrap();
+    let mut client = BrokenClient::<UdpBroadcasterParams, BoatStateUdp>::new(
+        Some(broadcaster),
+        Some(boat_state),
+    );
     let handle = tokio::spawn(async move {
-      client.run().await;
+        client.run().await;
     });
     let _ = tokio::join!(handle);
-    
-  Ok(())
-  }
+
+    Ok(())
+}

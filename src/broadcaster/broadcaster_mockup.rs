@@ -98,7 +98,7 @@ impl Broadcaster<broadcast::Sender<MsgType>, broadcast::Receiver<MsgType>, Optio
             self.sender_arg
                 .take()
                 .expect("No sender_arg in BroadcasterMockup"),
-                self.log_arg.take(),
+            self.log_arg.take(),
             self.local_recv_channel
                 .take()
                 .expect("No local_recv_channel in BroadcasterMockup"),

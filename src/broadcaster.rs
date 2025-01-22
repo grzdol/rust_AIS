@@ -43,7 +43,10 @@ where
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
      */
-    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType) -> impl std::future::Future<Output = ()> + std::marker::Send;
+    fn log_received_from_broadcast(
+        arg: &mut LoggerArgs,
+        msg: MsgType,
+    ) -> impl std::future::Future<Output = ()> + std::marker::Send;
 
     fn set_recv_channel(
         &mut self,

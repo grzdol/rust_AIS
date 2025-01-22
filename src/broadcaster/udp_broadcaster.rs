@@ -1,16 +1,16 @@
+use super::BroadcasterParams;
 use crate::broadcaster::Broadcaster;
 use crate::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
 use crate::client::sender::udp_sender::UdpSender;
 use crate::client::sender::Sender;
 use crate::server::receiver;
 use crate::utils::{MsgType, MSGTYPESIZE};
-use std::collections::HashSet;
 use log::{error, info};
-use tokio::net::{UdpSocket};
+use socket2::{Domain, Protocol, Socket, Type};
+use std::collections::HashSet;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use tokio::net::UdpSocket;
 use tokio::sync::{broadcast, mpsc};
-use std::net::{IpAddr, SocketAddrV4, Ipv4Addr, SocketAddr};
-use super::BroadcasterParams;
-use socket2::{Socket, Domain, Type, Protocol};
 
 pub struct UdpBroadcasterParams {}
 
@@ -43,8 +43,16 @@ impl UdpBroadcaster {
         multicast_port: u16,
         log_arg: UdpSender,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        println!("Binding receiver socket to {}:{}", local_receiver_ip, local_receiver_port);
-        let receiver_socket = match UdpSocket::bind(SocketAddrV4::new(local_receiver_ip, local_receiver_port)).await {
+        println!(
+            "Binding receiver socket to {}:{}",
+            local_receiver_ip, local_receiver_port
+        );
+        let receiver_socket = match UdpSocket::bind(SocketAddrV4::new(
+            local_receiver_ip,
+            local_receiver_port,
+        ))
+        .await
+        {
             Ok(socket) => socket,
             Err(e) => {
                 error!("Failed to bind receiver socket: {}", e);
@@ -81,7 +89,10 @@ impl UdpBroadcaster {
             }
         };
 
-        println!("Joining multicast group {} on interface {}", multicast_address, local_receiver_ip);
+        println!(
+            "Joining multicast group {} on interface {}",
+            multicast_address, local_receiver_ip
+        );
         if let Err(e) = receiver_socket.join_multicast_v4(multicast_address, local_receiver_ip) {
             error!("Error joining multicast group: {}", e);
             return Err(Box::new(e));
@@ -133,7 +144,6 @@ impl Broadcaster<(UdpSocket, SocketAddrV4), UdpSocket, UdpSender> for UdpBroadca
     async fn log_received_from_broadcast(sender: &mut UdpSender, msg: MsgType) {
         println!("logged msg");
         sender.send(msg).await;
-        
     }
 
     fn set_recv_channel(
