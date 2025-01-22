@@ -46,9 +46,7 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
     ) -> impl std::future::Future<Output = MsgType> + Send {
         async move {
             match framed.next().await {
-                Some(Ok(line)) => {
-                    string_to_msg_type(line)
-                }
+                Some(Ok(line)) => string_to_msg_type(line),
                 Some(Err(e)) => {
                     panic!("Error receiving line: {}", e);
                 }

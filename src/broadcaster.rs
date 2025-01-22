@@ -43,7 +43,7 @@ where
      * We probably would like to somehow log data receved from broadcaster to client, even if we cant forward it
      * to other clients or server.
      */
-    async fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType);
+    fn log_received_from_broadcast(arg: &mut LoggerArgs, msg: MsgType) -> impl std::future::Future<Output = ()> + std::marker::Send;
 
     fn set_recv_channel(
         &mut self,
@@ -91,7 +91,7 @@ where
         async move {
             loop {
                 let msg: MsgType = Self::recv_from_broadcast(&mut arg).await;
-                Self::log_received_from_broadcast(&mut log_arg, msg);
+                Self::log_received_from_broadcast(&mut log_arg, msg).await;
                 let _ = send_channel.send(msg);
             }
         }

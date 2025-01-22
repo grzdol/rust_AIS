@@ -1,24 +1,25 @@
 use crate::broadcaster::Broadcaster;
 use crate::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
+use crate::client::sender::udp_sender::UdpSender;
 use crate::client::sender::Sender;
 use crate::server::receiver;
 use crate::utils::{MsgType, MSGTYPESIZE};
 use std::collections::HashSet;
-use tokio::net::UdpSocket;
+use log::{error, info};
+use tokio::net::{UdpSocket};
 use tokio::sync::{broadcast, mpsc};
-
+use std::net::{IpAddr, SocketAddrV4, Ipv4Addr, SocketAddr};
 use super::BroadcasterParams;
+use socket2::{Socket, Domain, Type, Protocol};
 
-pub struct UdpBroadcasterParams{
-
-}
+pub struct UdpBroadcasterParams {}
 
 impl BroadcasterParams for UdpBroadcasterParams {
-    type SenderArgs = (UdpSocket, &'static str);
+    type SenderArgs = (UdpSocket, SocketAddrV4);
 
     type ReceiverArgs = UdpSocket;
 
-    type LoggerArgs = TcpRawNmeaSender;
+    type LoggerArgs = UdpSender;
 
     type B = UdpBroadcaster;
 }
@@ -26,41 +27,87 @@ impl BroadcasterParams for UdpBroadcasterParams {
 pub struct UdpBroadcaster {
     sender_socket: Option<UdpSocket>,
     receiver_socket: Option<UdpSocket>,
-    log_arg: Option<TcpRawNmeaSender>,
+    log_arg: Option<UdpSender>,
     local_recv_channel: Option<mpsc::UnboundedReceiver<MsgType>>,
     local_send_channel: Option<mpsc::UnboundedSender<MsgType>>,
-    broadcast_address: &'static str,
+    multicast_address: SocketAddrV4,
 }
 
 impl UdpBroadcaster {
     pub async fn new(
-        local_recevier_address: &str,
-        local_sender_address: &str,
-        broadcast_address: &'static str,
-        log_arg: TcpRawNmeaSender,
-    ) -> Self {
-        let sender_socket = UdpSocket::bind(local_sender_address).await.unwrap();
-        let _ = sender_socket.set_broadcast(true);
-        let receiver_socket = UdpSocket::bind(local_recevier_address).await.unwrap();
-        let _ = receiver_socket.set_broadcast(true);
-        Self {
+        local_receiver_ip: Ipv4Addr,
+        local_receiver_port: u16,
+        local_sender_ip: Ipv4Addr,
+        local_sender_port: u16,
+        multicast_address: Ipv4Addr,
+        multicast_port: u16,
+        log_arg: UdpSender,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        println!("Binding receiver socket to {}:{}", local_receiver_ip, local_receiver_port);
+        let receiver_socket = match UdpSocket::bind(SocketAddrV4::new(local_receiver_ip, local_receiver_port)).await {
+            Ok(socket) => socket,
+            Err(e) => {
+                error!("Failed to bind receiver socket: {}", e);
+                return Err(Box::new(e));
+            }
+        };
+
+        println!("Creating sender socket");
+        let socket = match Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)) {
+            Ok(socket) => socket,
+            Err(e) => {
+                error!("Failed to create sender socket: {}", e);
+                return Err(Box::new(e));
+            }
+        };
+
+        println!("Binding sender socket to any address");
+        if let Err(e) = socket.bind(&SocketAddr::from(([0, 0, 0, 0], 0)).into()) {
+            error!("Failed to bind sender socket: {}", e);
+            return Err(Box::new(e));
+        }
+
+        println!("Setting multicast interface for sender socket");
+        if let Err(e) = socket.set_multicast_if_v4(&multicast_address.into()) {
+            error!("Failed to set multicast interface: {}", e);
+            return Err(Box::new(e));
+        }
+
+        let sender_socket = match UdpSocket::from_std(socket.into()) {
+            Ok(socket) => socket,
+            Err(e) => {
+                error!("Failed to create sender socket from std socket: {}", e);
+                return Err(Box::new(e));
+            }
+        };
+
+        println!("Joining multicast group {} on interface {}", multicast_address, local_receiver_ip);
+        if let Err(e) = receiver_socket.join_multicast_v4(multicast_address, local_receiver_ip) {
+            error!("Error joining multicast group: {}", e);
+            return Err(Box::new(e));
+        }
+
+        let multicast_address = SocketAddrV4::new(multicast_address, multicast_port);
+
+        Ok(Self {
             sender_socket: Some(sender_socket),
             receiver_socket: Some(receiver_socket),
             log_arg: Some(log_arg),
             local_recv_channel: None,
             local_send_channel: None,
-            broadcast_address,
-        }
+            multicast_address,
+        })
     }
 }
 
-impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for UdpBroadcaster {
+impl Broadcaster<(UdpSocket, SocketAddrV4), UdpSocket, UdpSender> for UdpBroadcaster {
     fn broadcast(
-        arg: &mut (UdpSocket, &'static str),
+        arg: &mut (UdpSocket, SocketAddrV4),
         msg: MsgType,
     ) -> impl std::future::Future<Output = ()> + Send {
         async move {
             let _ = arg.0.send_to(&msg, arg.1).await;
+            // println!("sent to broadcast");
         }
     }
 
@@ -83,8 +130,10 @@ impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for Udp
         }
     }
 
-    async fn log_received_from_broadcast(sender: &mut TcpRawNmeaSender, msg: MsgType) {
+    async fn log_received_from_broadcast(sender: &mut UdpSender, msg: MsgType) {
+        println!("logged msg");
         sender.send(msg).await;
+        
     }
 
     fn set_recv_channel(
@@ -100,8 +149,8 @@ impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for Udp
         &mut self,
     ) -> (
         UdpSocket,
-        (UdpSocket, &'static str),
-        TcpRawNmeaSender,
+        (UdpSocket, SocketAddrV4),
+        UdpSender,
         mpsc::UnboundedReceiver<MsgType>,
         mpsc::UnboundedSender<MsgType>,
     ) {
@@ -113,7 +162,7 @@ impl Broadcaster<(UdpSocket, &'static str), UdpSocket, TcpRawNmeaSender> for Udp
                 self.sender_socket
                     .take()
                     .expect("No sender_socket in UdpBroadcaster"),
-                self.broadcast_address,
+                self.multicast_address,
             ),
             self.log_arg.take().expect("No log_arg in UdpBroadcaster"),
             self.local_recv_channel

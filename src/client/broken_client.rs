@@ -10,6 +10,12 @@ pub struct BrokenClient<BP: BroadcasterParams, T: BoatState> {
     boat_state: Option<T>,
 }
 
+impl<BP: BroadcasterParams, T: BoatState> BrokenClient<BP, T> {
+    pub fn new(broadcaster: Option<BP::B>, boat_state: Option<T>) -> Self {
+        Self { broadcaster, boat_state }
+    }
+}
+
 impl<T: BoatState + 'static, BP: BroadcasterParams> Client<T, BrokenSedner, BrokenSedner, BP>
     for BrokenClient<BP, T>
 {

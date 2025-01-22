@@ -49,8 +49,6 @@ pub struct AISResponse {
 }
 
 pub async fn encode_ais_data(data: AISData) -> Result<String, Error> {
-    //ToDo export to some config and use reqwest client
-    println!("{}", json!(&data));
     let client = Client::new();
     let response = client
         .post("http://127.0.0.1:8000/generate_ais/")
