@@ -1,8 +1,7 @@
-use crate::boat_state::{self, BoatState};
-use crate::utils;
+use crate::boat_state::{BoatState};
 use std::net::IpAddr;
 use std::thread::sleep;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 pub struct TcpClient<T>
 where

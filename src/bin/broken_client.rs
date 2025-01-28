@@ -3,13 +3,8 @@ use std::net::Ipv4Addr;
 use rust_AIS::boat_state::boat_state_udp::BoatStateUdp;
 use rust_AIS::broadcaster::udp_broadcaster::{UdpBroadcaster, UdpBroadcasterParams};
 use rust_AIS::client::broken_client::BrokenClient;
-use rust_AIS::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
-use rust_AIS::client::sender::tcp_sender::TcpSender;
 use rust_AIS::client::sender::udp_sender::UdpSender;
-use rust_AIS::client::tcp_udp_client::TcpUdpClient;
-use rust_AIS::client::{self, Client};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
+use rust_AIS::client::{Client};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

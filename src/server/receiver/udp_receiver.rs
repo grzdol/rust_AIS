@@ -1,4 +1,3 @@
-use nmea::sentences::utils;
 use tokio::net::UdpSocket;
 
 use crate::utils::{MsgType, MSGTYPESIZE};
@@ -24,7 +23,7 @@ impl UdpReceiver {
 }
 
 impl Receiver<UdpSocket> for UdpReceiver {
-    fn accept_client(&mut self) -> impl std::future::Future<Output = (UdpSocket)> + Send {
+    fn accept_client(&mut self) -> impl std::future::Future<Output = UdpSocket> + Send {
         async {
             self.finish_accepting = true;
             self.socket.take().unwrap()

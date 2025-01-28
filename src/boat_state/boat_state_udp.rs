@@ -1,9 +1,6 @@
 use tokio::net::UdpSocket;
 
-use crate::{
-    server::receiver::{self, udp_receiver::UdpReceiver},
-    utils::{MsgType, MSGTYPESIZE},
-};
+use crate::utils::{MsgType, MSGTYPESIZE};
 
 use super::BoatState;
 

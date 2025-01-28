@@ -10,8 +10,8 @@ pub trait ReceiverT: Send + 'static {
 }
 
 pub trait Receiver<AcceptArgs: Send + Sync + 'static>: Send + 'static {
-    fn accept_client(&mut self) -> impl std::future::Future<Output = (AcceptArgs)> + Send;
-    fn recv(args: &mut AcceptArgs) -> impl std::future::Future<Output = (MsgType)> + Send;
+    fn accept_client(&mut self) -> impl std::future::Future<Output = AcceptArgs> + Send;
+    fn recv(args: &mut AcceptArgs) -> impl std::future::Future<Output = MsgType> + Send;
     fn finish_accepting(&self) -> bool;
 
     fn run(

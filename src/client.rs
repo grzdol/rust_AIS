@@ -1,19 +1,15 @@
-use std::time::Duration;
 
 use sender::Sender;
-use tokio::{
-    sync::{
+use tokio::sync::{
         broadcast,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
-    },
-    time::sleep,
-};
+    };
 
 use crate::{
     boat_state::BoatState,
-    broadcaster::{self, Broadcaster, BroadcasterParams},
+    broadcaster::{Broadcaster, BroadcasterParams},
     utils::{
-        build_timestamped_ais_message, encode_ais_data, string_to_msg_type, AISResponse, MsgType,
+        build_timestamped_ais_message, string_to_msg_type, AISResponse, MsgType,
     },
 };
 

@@ -1,8 +1,8 @@
-use futures::{io::Lines, SinkExt};
+use futures::SinkExt;
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedWrite, LinesCodec};
 
-use crate::utils::{split_message_on_TIMESTAMP, string_to_msg_type};
+use crate::utils::split_message_on_TIMESTAMP;
 
 use super::Sender;
 

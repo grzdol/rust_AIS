@@ -9,7 +9,7 @@
  *
  *
  */
-use crate::utils::{AISData, MsgType};
+use crate::utils::MsgType;
 pub mod boat_state_mockup;
 pub mod boat_state_udp;
 pub trait BoatState: Send {

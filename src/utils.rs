@@ -1,14 +1,11 @@
-use std::string;
 
 use chrono::{DateTime, Utc};
 use futures::sink::SinkExt;
-use futures::AsyncRead;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tokio::{net::TcpStream, time};
+use tokio::net::TcpStream;
 use tokio_stream::StreamExt;
-use tokio_util::codec::{Framed, FramedRead, FramedWrite, LinesCodec};
+use tokio_util::codec::{FramedRead, LinesCodec};
 
 pub static TIMESTAMP: &str = "TIMESTAMP";
 pub static MSGTYPESIZE: usize = 1024;

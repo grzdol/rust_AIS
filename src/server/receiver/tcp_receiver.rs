@@ -2,10 +2,9 @@ use crate::{
     server::Receiver,
     utils::{string_to_msg_type, MsgType},
 };
-use futures::{io::Lines, SinkExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::StreamExt;
-use tokio_util::codec::{FramedRead, FramedWrite, LinesCodec};
+use tokio_util::codec::{FramedRead, LinesCodec};
 
 use super::ReceiverT;
 
@@ -29,7 +28,7 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
 
     fn accept_client(
         &mut self,
-    ) -> impl std::future::Future<Output = (FramedRead<TcpStream, LinesCodec>)> + Send {
+    ) -> impl std::future::Future<Output = FramedRead<TcpStream, LinesCodec>> + Send {
         async move {
             let (socket, _addr) = match self.listener.accept().await {
                 Ok((socket, addr)) => (socket, addr),

@@ -1,10 +1,10 @@
 use tokio::net::TcpStream;
-use tokio_util::codec::{Framed, FramedWrite, LinesCodec};
+use tokio_util::codec::{FramedWrite, LinesCodec};
 
 use crate::utils::{msg_type_to_string, MsgType};
 
 use super::Sender;
-use futures::{io::Lines, SinkExt};
+use futures::SinkExt;
 pub struct TcpSender {
     framed_socket: FramedWrite<TcpStream, LinesCodec>,
 }

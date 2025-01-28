@@ -1,14 +1,11 @@
-use log::debug;
 use rust_AIS::boat_state::boat_state_udp::BoatStateUdp;
 use rust_AIS::broadcaster::broadcaster_mockup::{BroadcasterMockup, BroadcasterMockupParams};
 use rust_AIS::client::broken_client::BrokenClient;
 use rust_AIS::server::Server;
 use rust_AIS::utils::MsgType;
-use std::net::{IpAddr, Ipv4Addr};
 use tokio::sync::broadcast;
 
 use rust_AIS::boat_state::boat_state_mockup::BoatStateMockup;
-use rust_AIS::broadcaster::BroadcasterParams;
 use rust_AIS::client::sender::tcp_sender::TcpSender;
 use rust_AIS::client::sender::udp_sender::UdpSender;
 use rust_AIS::client::tcp_udp_client::TcpUdpClient;

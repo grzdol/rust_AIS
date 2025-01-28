@@ -1,16 +1,13 @@
 use super::BroadcasterParams;
 use crate::broadcaster::Broadcaster;
-use crate::client::sender::tcp_raw_nmea_sender::TcpRawNmeaSender;
 use crate::client::sender::udp_sender::UdpSender;
 use crate::client::sender::Sender;
-use crate::server::receiver;
 use crate::utils::{MsgType, MSGTYPESIZE};
-use log::{error, info};
+use log::error;
 use socket2::{Domain, Protocol, Socket, Type};
-use std::collections::HashSet;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use tokio::net::UdpSocket;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 
 pub struct UdpBroadcasterParams {}
 

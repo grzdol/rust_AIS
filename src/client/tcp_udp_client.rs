@@ -1,26 +1,12 @@
-use std::net::IpAddr;
-use std::thread::sleep;
-use std::time::Duration;
 
-use chrono::{DateTime, Utc};
-use futures::SinkExt;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
-use tokio::sync::broadcast::{self, channel};
 use tokio::sync::mpsc;
-use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
-use tokio_util::codec::{FramedWrite, LinesCodec};
 
-use crate::broadcaster::{self, Broadcaster};
-use crate::utils::string_to_msg_type;
+use crate::broadcaster::{Broadcaster};
 use crate::{
     boat_state::BoatState,
-    broadcaster::broadcaster_mockup::BroadcasterMockup,
     broadcaster::BroadcasterParams,
-    utils::{self, build_timestamped_ais_message, encode_ais_data, AISResponse, MsgType},
+    utils::{MsgType},
 };
-use std::hash::Hash;
-use std::marker::PhantomData;
 
 use super::sender::tcp_sender::TcpSender;
 use super::sender::udp_sender::UdpSender;
