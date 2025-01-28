@@ -1,3 +1,11 @@
+/*****
+ * 
+ * 
+ * DEPRECATED
+ * 
+ * 
+ * 
+ */
 use crate::boat_state::BoatState;
 use std::net::IpAddr;
 use std::thread::sleep;

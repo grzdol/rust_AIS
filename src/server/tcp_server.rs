@@ -1,3 +1,12 @@
+/***
+ * 
+ * 
+ * DEPRECATED
+ * 
+ * 
+ */
+
+
 use std::net::IpAddr;
 
 use bytes::Bytes;
