@@ -1,12 +1,7 @@
-
 use tokio::sync::mpsc;
 
-use crate::broadcaster::{Broadcaster};
-use crate::{
-    boat_state::BoatState,
-    broadcaster::BroadcasterParams,
-    utils::{MsgType},
-};
+use crate::broadcaster::Broadcaster;
+use crate::{boat_state::BoatState, broadcaster::BroadcasterParams, utils::MsgType};
 
 use super::sender::tcp_sender::TcpSender;
 use super::sender::udp_sender::UdpSender;

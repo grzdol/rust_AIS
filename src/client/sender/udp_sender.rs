@@ -9,10 +9,8 @@ pub struct UdpSender {
 }
 
 impl Sender for UdpSender {
-    fn send(&mut self, msg: MsgType) -> impl std::future::Future<Output = ()> + Send {
-        async move {
-            let _ = self.socket.send(&msg).await;
-        }
+    async fn send(&mut self, msg: MsgType) {
+        let _ = self.socket.send(&msg).await;
     }
 }
 

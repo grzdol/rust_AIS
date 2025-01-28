@@ -26,32 +26,24 @@ impl Receiver<FramedRead<TcpStream, LinesCodec>> for TcpReceiver {
         false
     }
 
-    fn accept_client(
-        &mut self,
-    ) -> impl std::future::Future<Output = FramedRead<TcpStream, LinesCodec>> + Send {
-        async move {
-            let (socket, _addr) = match self.listener.accept().await {
-                Ok((socket, addr)) => (socket, addr),
-                Err(e) => {
-                    panic!("Failed to accept client: {}", e);
-                }
-            };
-            FramedRead::new(socket, LinesCodec::new())
-        }
+    async fn accept_client(&mut self) -> FramedRead<TcpStream, LinesCodec> {
+        let (socket, _addr) = match self.listener.accept().await {
+            Ok((socket, addr)) => (socket, addr),
+            Err(e) => {
+                panic!("Failed to accept client: {}", e);
+            }
+        };
+        FramedRead::new(socket, LinesCodec::new())
     }
 
-    fn recv(
-        framed: &mut FramedRead<TcpStream, LinesCodec>,
-    ) -> impl std::future::Future<Output = MsgType> + Send {
-        async move {
-            match framed.next().await {
-                Some(Ok(line)) => string_to_msg_type(line),
-                Some(Err(e)) => {
-                    panic!("Error receiving line: {}", e);
-                }
-                None => {
-                    panic!("Stream ended.");
-                }
+    async fn recv(framed: &mut FramedRead<TcpStream, LinesCodec>) -> MsgType {
+        match framed.next().await {
+            Some(Ok(line)) => string_to_msg_type(line),
+            Some(Err(e)) => {
+                panic!("Error receiving line: {}", e);
+            }
+            None => {
+                panic!("Stream ended.");
             }
         }
     }

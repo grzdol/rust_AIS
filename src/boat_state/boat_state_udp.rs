@@ -16,13 +16,9 @@ impl BoatStateUdp {
 }
 
 impl BoatState for BoatStateUdp {
-    fn get_ais_data(
-        &self,
-    ) -> impl std::future::Future<Output = crate::utils::MsgType> + std::marker::Send {
-        async move {
-            let mut buf: MsgType = [0u8; MSGTYPESIZE];
-            let _ = self.socket.recv(&mut buf).await;
-            buf
-        }
+    async fn get_ais_data(&self) -> crate::utils::MsgType {
+        let mut buf: MsgType = [0u8; MSGTYPESIZE];
+        let _ = self.socket.recv(&mut buf).await;
+        buf
     }
 }

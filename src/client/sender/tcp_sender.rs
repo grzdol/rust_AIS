@@ -10,10 +10,8 @@ pub struct TcpSender {
 }
 
 impl Sender for TcpSender {
-    fn send(&mut self, msg: MsgType) -> impl std::future::Future<Output = ()> + Send {
-        async move {
-            let _ = self.framed_socket.send(msg_type_to_string(msg)).await;
-        }
+    async fn send(&mut self, msg: MsgType) {
+        let _ = self.framed_socket.send(msg_type_to_string(msg)).await;
     }
 }
 

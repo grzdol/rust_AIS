@@ -48,19 +48,12 @@ impl BroadcasterMockup {
 impl Broadcaster<broadcast::Sender<MsgType>, broadcast::Receiver<MsgType>, Option<UdpSender>>
     for BroadcasterMockup
 {
-    fn broadcast(
-        arg: &mut broadcast::Sender<MsgType>,
-        msg: MsgType,
-    ) -> impl std::future::Future<Output = ()> + Send {
-        async move {
-            let _ = arg.send(msg);
-        }
+    async fn broadcast(arg: &mut broadcast::Sender<MsgType>, msg: MsgType) {
+        let _ = arg.send(msg);
     }
 
-    fn recv_from_broadcast(
-        arg: &mut broadcast::Receiver<MsgType>,
-    ) -> impl std::future::Future<Output = MsgType> + Send {
-        async move { arg.recv().await.unwrap() }
+    async fn recv_from_broadcast(arg: &mut broadcast::Receiver<MsgType>) -> MsgType {
+        arg.recv().await.unwrap()
     }
 
     async fn log_received_from_broadcast(sender: &mut Option<UdpSender>, msg: MsgType) {

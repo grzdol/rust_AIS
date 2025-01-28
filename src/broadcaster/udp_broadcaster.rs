@@ -34,8 +34,8 @@ impl UdpBroadcaster {
     pub async fn new(
         local_receiver_ip: Ipv4Addr,
         local_receiver_port: u16,
-        local_sender_ip: Ipv4Addr,
-        local_sender_port: u16,
+        _local_sender_ip: Ipv4Addr,
+        _local_sender_port: u16,
         multicast_address: Ipv4Addr,
         multicast_port: u16,
         log_arg: UdpSender,
@@ -73,7 +73,7 @@ impl UdpBroadcaster {
         }
 
         println!("Setting multicast interface for sender socket");
-        if let Err(e) = socket.set_multicast_if_v4(&multicast_address.into()) {
+        if let Err(e) = socket.set_multicast_if_v4(&multicast_address) {
             error!("Failed to set multicast interface: {}", e);
             return Err(Box::new(e));
         }
@@ -109,33 +109,24 @@ impl UdpBroadcaster {
 }
 
 impl Broadcaster<(UdpSocket, SocketAddrV4), UdpSocket, UdpSender> for UdpBroadcaster {
-    fn broadcast(
-        arg: &mut (UdpSocket, SocketAddrV4),
-        msg: MsgType,
-    ) -> impl std::future::Future<Output = ()> + Send {
-        async move {
-            let _ = arg.0.send_to(&msg, arg.1).await;
-            // println!("sent to broadcast");
-        }
+    async fn broadcast(arg: &mut (UdpSocket, SocketAddrV4), msg: MsgType) {
+        let _ = arg.0.send_to(&msg, arg.1).await;
+        // println!("sent to broadcast");
     }
 
-    fn recv_from_broadcast(
-        socket: &mut UdpSocket,
-    ) -> impl std::future::Future<Output = MsgType> + Send {
-        async move {
-            let mut buf = [0u8; MSGTYPESIZE + 1];
-            let (len, _) = match socket.recv_from(&mut buf).await {
-                Ok(result) => result,
-                Err(e) => {
-                    panic!("Error receiving from UDP socket: {}", e);
-                }
-            };
+    async fn recv_from_broadcast(socket: &mut UdpSocket) -> MsgType {
+        let mut buf = [0u8; MSGTYPESIZE + 1];
+        let (len, _) = match socket.recv_from(&mut buf).await {
+            Ok(result) => result,
+            Err(e) => {
+                panic!("Error receiving from UDP socket: {}", e);
+            }
+        };
 
-            let mut msg = [0u8; MSGTYPESIZE];
-            let copy_len = MSGTYPESIZE.min(len);
-            msg[..copy_len].copy_from_slice(&buf[..copy_len]);
-            msg
-        }
+        let mut msg = [0u8; MSGTYPESIZE];
+        let copy_len = MSGTYPESIZE.min(len);
+        msg[..copy_len].copy_from_slice(&buf[..copy_len]);
+        msg
     }
 
     async fn log_received_from_broadcast(sender: &mut UdpSender, msg: MsgType) {

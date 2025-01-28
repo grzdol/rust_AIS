@@ -1,4 +1,4 @@
-use crate::boat_state::{BoatState};
+use crate::boat_state::BoatState;
 use std::net::IpAddr;
 use std::thread::sleep;
 use tokio::io::AsyncWriteExt;
@@ -7,8 +7,6 @@ pub struct TcpClient<T>
 where
     T: BoatState,
 {
-    ip: IpAddr,
-    port: u16,
     stream: TcpStream,
     boat_state: T,
 }
@@ -26,12 +24,7 @@ impl<T: BoatState> TcpClient<T> {
                 return Err(Box::new(e));
             }
         };
-        Ok(TcpClient {
-            ip,
-            port,
-            stream,
-            boat_state,
-        })
+        Ok(TcpClient { stream, boat_state })
     }
 
     pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {

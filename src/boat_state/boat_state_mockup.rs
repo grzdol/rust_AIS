@@ -39,18 +39,10 @@ impl BoatStateMockup {
             let seconds = timestamp.as_secs_f32();
             let lat = self.init_lat + f32::cos(self.course) / 3600.0 * seconds * self.speed;
             let lon = self.init_lon + f32::sin(self.course) / 3600.0 * seconds * self.speed;
-            //Above is slightly suboptimal since sin / 3600 could be calculated once but idgaf
+            //Above is slightly suboptimal since sin / 3600 could be calculated once
             (lat, lon)
         } else {
             (-1.0, -1.0) // ToDo
         }
-    }
-
-    fn get_current_course(&self) -> f32 {
-        self.course
-    }
-
-    fn get_mmsi(&self) -> String {
-        self.mmsi.clone() //mmsi is not a long string so it's not expensive clone
     }
 }

@@ -1,6 +1,4 @@
-
 use chrono::{DateTime, Utc};
-use futures::sink::SinkExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
@@ -16,13 +14,13 @@ pub type MsgType = [u8; MSGTYPESIZE];
 pub struct AISData {
     course: f32,
     lat: f32,
-    #[serde(rename = "lon")] // Rename `long` to `lon` for serialization
+    #[serde(rename = "lon")] 
     long: f32,
     mmsi: String,
-    #[serde(rename = "type")] // Rename `message_type` to `type` for serialization
+    #[serde(rename = "type")] 
     message_type: i32,
-    #[serde(rename = "talker_id")] // Include static field
-    #[serde(default = "default_talker_id")] // Use a default function for talker_id
+    #[serde(rename = "talker_id")] 
+    #[serde(default = "default_talker_id")] 
     talker_id: String,
 }
 
@@ -61,23 +59,22 @@ pub async fn get_next_framed_ais_message(
     framed: &mut FramedRead<TcpStream, LinesCodec>,
 ) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
     if let Some(line) = framed.next().await {
-        return split_message_on_TIMESTAMP(line?);
+        split_message_on_timestamp(line?)
     } else {
         Err("No more lines in the stream".into())
     }
 }
 
-pub fn split_message_on_TIMESTAMP(
+pub fn split_message_on_timestamp(
     msg: String,
 ) -> Result<(String, DateTime<Utc>), Box<dyn std::error::Error>> {
     if let Some(pos) = msg.find(TIMESTAMP) {
         let (before, after) = msg.split_at(pos);
-        let timestamp_str = &after[TIMESTAMP.len()..].trim();
+        let _timestamp_str = &after[TIMESTAMP.len()..].trim();
         // ToDo. Have no clue why below crashes for weak receiver
         // let timestamp = DateTime::parse_from_rfc3339(timestamp_str)?.with_timezone(&Utc);
         Ok((before.to_string(), Utc::now()))
     } else {
-        // println!("{}", msg);
         println!("ERROR IN SPLITTING MSG {}", msg);
         Err(msg.into())
     }

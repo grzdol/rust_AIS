@@ -10,9 +10,6 @@ pub mod udp_broadcaster;
  * This is a mechanism of passing information between Clients.
  * We assume that a boat might not have internet connection, but
  * it may be able to broadcast data through radio to other boats, thats why we need it.
- */
-
-/**
  * Since it's pretty unclear how exactly Broadcaster could be implemented, theres a lot of
  * generic Args
  */

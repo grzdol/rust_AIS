@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = server.run().await;
     });
 
-    let (send_broadcast, recv_broadcast) = broadcast::channel::<MsgType>(1024);
+    let (send_broadcast, _recv_broadcast) = broadcast::channel::<MsgType>(1024);
 
     let alefant_udp_sender = UdpSender::new("127.0.0.1:4210", "127.0.0.1:4200").await;
     let alefant_tcp_sender = TcpSender::new("127.0.0.1:6969").await;

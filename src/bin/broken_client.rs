@@ -4,7 +4,7 @@ use rust_AIS::boat_state::boat_state_udp::BoatStateUdp;
 use rust_AIS::broadcaster::udp_broadcaster::{UdpBroadcaster, UdpBroadcasterParams};
 use rust_AIS::client::broken_client::BrokenClient;
 use rust_AIS::client::sender::udp_sender::UdpSender;
-use rust_AIS::client::{Client};
+use rust_AIS::client::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

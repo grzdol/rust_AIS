@@ -110,7 +110,7 @@ impl TcpServer {
         let publisher = tokio::spawn(async move {
             let _ = TcpServer::opencpn_publisher(self.rx, self.opencpn_stream).await;
         });
-        tokio::join!(accept_loop, publisher);
+        let _ = tokio::join!(accept_loop, publisher);
         Ok(())
     }
 }

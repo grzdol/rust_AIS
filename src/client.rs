@@ -1,16 +1,13 @@
-
 use sender::Sender;
 use tokio::sync::{
-        broadcast,
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-    };
+    broadcast,
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+};
 
 use crate::{
     boat_state::BoatState,
     broadcaster::{Broadcaster, BroadcasterParams},
-    utils::{
-        build_timestamped_ais_message, string_to_msg_type, AISResponse, MsgType,
-    },
+    utils::{build_timestamped_ais_message, string_to_msg_type, AISResponse, MsgType},
 };
 
 pub mod broken_client;
@@ -24,6 +21,7 @@ where
     WeakSender: Sender,
     StrongSender: Sender,
     BP: BroadcasterParams,
+    Self: Send,
 {
     fn get_broadcaster(
         &mut self,
@@ -96,40 +94,46 @@ where
         }
     }
 
-    async fn run_impl(&mut self, weak_sender: WeakSender, strong_sender: StrongSender) {
-        let (boat_state_sender_channel, _boat_state_receiver_channel): (
-            broadcast::Sender<MsgType>,
-            broadcast::Receiver<MsgType>,
-        ) = broadcast::channel(4096);
-        let recv1 = boat_state_sender_channel.subscribe();
-        let recv2 = boat_state_sender_channel.subscribe();
-        let strong_handle = tokio::spawn(async move {
-            Self::run_strong_sender(strong_sender, recv1).await;
-        });
+    fn run_impl(
+        &mut self,
+        weak_sender: WeakSender,
+        strong_sender: StrongSender,
+    ) -> impl std::future::Future<Output = ()> + Send {
+        async {
+            let (boat_state_sender_channel, _boat_state_receiver_channel): (
+                broadcast::Sender<MsgType>,
+                broadcast::Receiver<MsgType>,
+            ) = broadcast::channel(4096);
+            let recv1 = boat_state_sender_channel.subscribe();
+            let recv2 = boat_state_sender_channel.subscribe();
+            let strong_handle = tokio::spawn(async move {
+                Self::run_strong_sender(strong_sender, recv1).await;
+            });
 
-        let (broadcaster_send_channel, broadcaster_recv_channel) = mpsc::unbounded_channel();
+            let (broadcaster_send_channel, broadcaster_recv_channel) = mpsc::unbounded_channel();
 
-        let cp = broadcaster_send_channel.clone();
-        let weak_handle = tokio::spawn(async move {
-            Self::run_weak_sender(weak_sender, recv2, cp).await;
-        });
+            let cp = broadcaster_send_channel.clone();
+            let weak_handle = tokio::spawn(async move {
+                Self::run_weak_sender(weak_sender, recv2, cp).await;
+            });
 
-        let mut broadcaster =
-            self.get_broadcaster(broadcaster_recv_channel, broadcaster_send_channel);
-        let broadcaster_handle = tokio::spawn(async move {
-            broadcaster.run().await;
-        });
+            let mut broadcaster =
+                self.get_broadcaster(broadcaster_recv_channel, broadcaster_send_channel);
+            let broadcaster_handle = tokio::spawn(async move {
+                broadcaster.run().await;
+            });
 
-        let boat_state = self.get_boat_state();
-        let boat_state_publisher = tokio::spawn(async move {
-            Self::boat_state_handler(boat_state, boat_state_sender_channel).await;
-        });
+            let boat_state = self.get_boat_state();
+            let boat_state_publisher = tokio::spawn(async move {
+                Self::boat_state_handler(boat_state, boat_state_sender_channel).await;
+            });
 
-        let _ = tokio::join!(
-            strong_handle,
-            weak_handle,
-            broadcaster_handle,
-            boat_state_publisher
-        );
+            let _ = tokio::join!(
+                strong_handle,
+                weak_handle,
+                broadcaster_handle,
+                boat_state_publisher
+            );
+        }
     }
 }
